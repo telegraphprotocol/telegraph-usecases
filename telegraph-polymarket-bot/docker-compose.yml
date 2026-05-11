@@ -1,0 +1,45 @@
+services:
+  api:
+    build:
+      context: ./api
+    ports:
+      - "3001:3001"
+    restart: always
+    environment:
+      - PORT=3001
+      - DATABASE_URL=mongodb://mongodb:27017/sniper_bot?directConnection=true
+      - JWT_SECRET=telegraph-sniper-bot-secret-key-2026
+      - MASTER_ENCRYPTION_KEY=e99990b7936a5323dd88e7a8add4442d72111de8ea8da790757dffe975c5fd0b
+    depends_on:
+      - mongodb
+
+  mongodb:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: always
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+
+  mongo-init:
+    image: mongo:latest
+    depends_on:
+      - mongodb
+    restart: on-failure
+    command: >
+      mongosh --host mongodb:27017 --eval '
+        try {
+          rs.status();
+          console.log("Replica set already initialized");
+        } catch (e) {
+          rs.initiate({
+            _id: "rs0",
+            members: [{ _id: 0, host: "mongodb:27017" }]
+          });
+          console.log("Replica set initialized");
+        }
+      '
+
+volumes:
+  mongodb_data:

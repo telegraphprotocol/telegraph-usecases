@@ -1,0 +1,113 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  address       String         @unique
+  createdAt     DateTime       @default(now())
+  botEnabled    Boolean        @default(false)
+  wallet        Wallet?
+  subscriptions Subscription[]
+}
+
+model Wallet {
+  id                   String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId               String   @unique @db.ObjectId
+  user                 User     @relation(fields: [userId], references: [id])
+  address              String   @unique
+  encryptedPrivateKey  String
+  iv                   String
+  createdAt            DateTime @default(now())
+}
+
+enum SubscriptionPlan {
+  starter
+  pro
+  whale
+}
+
+enum SubscriptionStatus {
+  active
+  expired
+  cancelled
+}
+
+model Subscription {
+  id              String             @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String             @db.ObjectId
+  user            User               @relation(fields: [userId], references: [id])
+  plan            SubscriptionPlan
+  status          SubscriptionStatus @default(active)
+  startedAt       DateTime
+  expiresAt       DateTime
+  tradeCount      Int                @default(0)
+  txHash          String             @unique
+  amountUsd       Int
+  token           String
+  chainId         Int
+  fromAddress     String
+  toAddress       String
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, expiresAt])
+}
+
+model DecisionRun {
+  id              String     @id @default(auto()) @map("_id") @db.ObjectId
+  startedAt       DateTime
+  completedAt     DateTime?
+  trigger         String
+  keywords        String[]
+  marketsAnalyzed Int        @default(0)
+  skippedInactive Int        @default(0)
+  buyCount        Int        @default(0)
+  waitCount       Int        @default(0)
+  contextSummary  String?
+  decisions       Decision[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([createdAt])
+  @@index([startedAt])
+}
+
+model Decision {
+  id                   String      @id @default(auto()) @map("_id") @db.ObjectId
+  runId                String      @db.ObjectId
+  run                  DecisionRun @relation(fields: [runId], references: [id])
+  keyword              String
+  marketTitle          String
+  marketSlug           String
+  marketUrl            String
+  marketActive         Boolean
+  yesPrice             String
+  noPrice              String
+  liquidity            String
+  volume               String
+  action               String
+  token                String?
+  likelihood           Float
+  reason               String
+  relatedNews          Json
+  newsFetched          Boolean
+  retriesAttempted     Int
+  rateLimitEncountered Boolean
+  delayAppliedMs       Int
+  warning              String?
+  groqTxHash           String?
+  llmTxHash            String?
+  createdAt            DateTime    @default(now())
+
+  @@index([runId])
+  @@index([createdAt])
+  @@index([action, createdAt])
+  @@index([keyword, createdAt])
+}
