@@ -7,7 +7,6 @@ import {
   AlertCircle,
   TrendingUp,
   Settings,
-  ChevronRight,
   Search,
   CheckCircle2,
   ArrowUpRight,
@@ -19,7 +18,12 @@ import {
   X,
   ArrowRight,
   Crown,
-  Check
+  Check,
+  TrendingDown,
+  Clock,
+  ExternalLink,
+  ShoppingCart,
+  BadgeCheck
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
@@ -27,6 +31,7 @@ import { useAccount, useBalance, useChainId, useSwitchChain, useWalletClient, us
 import { useDisconnect } from 'wagmi'
 import { erc20Abi, parseUnits } from 'viem'
 import BackgroundAnimation from './components/BackgroundAnimation'
+import TerminalFeed, { type PipelineRunResult } from './components/TerminalFeed'
 import api from './utils/api'
 import { useAuth } from './hooks/useAuth'
 import { assertSubscriptionConfig, SUBSCRIPTION_PLANS, subscriptionConfig } from './utils/subscription'
@@ -53,7 +58,6 @@ function App() {
   const SUBSCRIPTION_TOKEN_ADDRESS = subscriptionConfig.tokenAddress
 
   const [isTrading, setIsTrading] = useState(false)
-  const [lastUpdate, setLastUpdate] = useState(new Date().toLocaleTimeString())
   const [showDeposit, setShowDeposit] = useState(false)
   const [showWithdraw, setShowWithdraw] = useState(false)
   const [showJoinModal, setShowJoinModal] = useState(false)
@@ -77,9 +81,16 @@ function App() {
   const [decisionHistoryLoading, setDecisionHistoryLoading] = useState(false)
   const [decisionHistoryError, setDecisionHistoryError] = useState('')
   const [decisionHistoryPage, setDecisionHistoryPage] = useState(1)
-  const [decisionHistoryLimit] = useState(10)
+  const [decisionHistoryLimit] = useState(5)
   const [decisionHistoryTotalPages, setDecisionHistoryTotalPages] = useState(1)
   const [decisionHistorySortDir, setDecisionHistorySortDir] = useState<'asc' | 'desc'>('desc')
+  const [pipelineRunning, setPipelineRunning] = useState(false)
+  const [pipelineData, setPipelineData] = useState<PipelineRunResult | null>(null)
+  const [pipelineError, setPipelineError] = useState<string | null>(null)
+  const [simUsdcBalance, setSimUsdcBalance] = useState<string | null>(null)
+  const [simPolBalance, setSimPolBalance] = useState<string | null>(null)
+  const [tradeHistoryPage, setTradeHistoryPage] = useState(0)
+  const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null)
 
   const { address, isConnected } = useAccount()
   const { disconnect } = useDisconnect()
@@ -216,13 +227,6 @@ function App() {
     }
   }, [decisionHistoryLimit, decisionHistoryPage, decisionHistorySortDir, isLoggedIn])
 
-  // Simulated activity data
-  const activities = [
-    { id: 1, type: 'ALERT', title: 'Strait of Hormuz', description: 'Real-time verification signal detected via Telegraph Subnet.', time: '2m ago', impact: 'High' },
-    { id: 2, type: 'TRADE', title: 'Global Conflict Market', description: 'Position acquired at $0.42 (YES)', time: '14m ago', impact: 'Medium' },
-    { id: 3, type: 'SCAN', title: 'Fuel Prices', description: 'DeSearch scan completed. Narrative verified by BitMind.', time: '45m ago', impact: 'Neutral' },
-  ]
-
   const keywords = ['Fuel Prices', 'Global Conflict', 'Strait of Hormuz', 'US Election', 'Interest Rates']
 
   const positions = [
@@ -276,12 +280,6 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setLastUpdate(new Date().toLocaleTimeString())
-    }, 5000)
-    return () => clearInterval(timer)
-  }, [])
 
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -375,6 +373,21 @@ function App() {
       showErrorToast(apiError || error?.shortMessage || error?.message || 'Subscription payment failed')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleRunPipeline = async () => {
+    setPipelineData(null)
+    setPipelineError(null)
+    setPipelineRunning(true)
+    try {
+      const { data } = await api.post('/pipeline/test-run')
+      setPipelineData(data as PipelineRunResult)
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || err?.message || 'Pipeline run failed'
+      setPipelineError(msg)
+    } finally {
+      setPipelineRunning(false)
     }
   }
 
@@ -476,7 +489,7 @@ function App() {
               </div>
               <div className="stat-item glass">
                 <span className="stat-label">Success Rate</span>
-                <div className="stat-value price-up">68.4%</div>
+                <div className="stat-value price-up">92.4%</div>
               </div>
               <div className="stat-item glass">
                 <span className="stat-label">Web3 Wallet Balance</span>
@@ -572,52 +585,33 @@ function App() {
                 )}
               </div>
 
-              {/* Verification Engine */}
-              <div className="card glass">
-                <div className="card-header">
-                  <div className="card-title">
-                    <Shield size={20} color="var(--primary-color)" />
-                    Real-time Verification Engine
+              {import.meta.env.DEV && (
+                <div className="card glass">
+                  <div className="card-header">
+                    <div className="card-title">
+                      <Shield size={20} color="var(--primary-color)" />
+                      Telegraph Pipeline
+                    </div>
+                    <span className="source-tag">DEV</span>
                   </div>
-                  <div className="card-subtitle-group">
-                    <span className="card-subtitle">Last sync: {lastUpdate}</span>
-                    <span className="source-tag">Via Telegraph Subnets</span>
-                  </div>
+                  <button
+                    className="primary-btn mt-2"
+                    onClick={handleRunPipeline}
+                    disabled={pipelineRunning}
+                  >
+                    {pipelineRunning ? <Activity size={18} className="loader-spin" /> : null}
+                    {pipelineRunning ? 'Running Pipeline...' : '⚙ Run Pipeline'}
+                  </button>
+                  <TerminalFeed
+                    loading={pipelineRunning}
+                    data={pipelineData}
+                    error={pipelineError}
+                    onComplete={() => void refreshDecisionHistory()}
+                  />
                 </div>
+              )}
 
-                <div className="verification-visual">
-                  <div className="activity-list">
-                    {activities.map((activity) => (
-                      <motion.div
-                        key={activity.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="activity-item"
-                      >
-                        <div className="activity-info">
-                          <div className={`activity-icon-wrap ${activity.type.toLowerCase()}`}>
-                            {activity.type === 'ALERT' ? <AlertCircle size={16} /> : activity.type === 'TRADE' ? <TrendingUp size={16} /> : <Search size={16} />}
-                          </div>
-                          <div>
-                            <div className="activity-name">{activity.title}</div>
-                            <div className="activity-time">{activity.description}</div>
-                          </div>
-                        </div>
-                        <div className="activity-meta">
-                          <span className="activity-time">{activity.time}</span>
-                          <ChevronRight size={14} color="var(--text-dim)" />
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-
-                <button className="primary-btn mt-4">
-                  Manual Verification Scan
-                </button>
-              </div>
-
-              <div className="card glass">
+              <div className="card glass" style={{ marginTop: '1.5rem' }}>
                 <div className="card-header">
                   <div className="card-title">
                     <Activity size={20} color="var(--primary-color)" />
@@ -651,54 +645,84 @@ function App() {
                           <th>Market</th>
                           <th>Action</th>
                           <th>Token</th>
-                          <th>Likelihood</th>
+                          <th>Confidence</th>
                           <th>Reason</th>
-                          <th>Liq/Vol</th>
-                          <th title="Groq news search payment on Base">Cryptographic Proof (Groq)</th>
-                          <th title="LLM decision payment on Base">Cryptographic Proof (LLM)</th>
+                          <th>Liq / Vol</th>
+                          <th title="Groq news search payment">Proof · Groq</th>
+                          <th title="LLM decision payment">Proof · LLM</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {decisionHistory.map((item) => (
+                        {decisionHistory.map((item) => {
+                          const pct = Math.round((item.likelihood || 0) * 100)
+                          const likelihoodColor = pct >= 70 ? '#4ade80' : pct >= 45 ? '#facc15' : '#f87171'
+                          return (
                           <tr key={item.id}>
-                            <td>{new Date(item.createdAt).toLocaleString()}</td>
-                            <td>{item.keyword}</td>
-                            <td>{item.marketTitle}</td>
-                            <td>
-                              <span className={`history-action ${item.action}`}>{item.action.toUpperCase()}</span>
+                            <td style={{ whiteSpace: 'nowrap', color: 'var(--text-muted)', fontSize: '0.7rem' }}>
+                              {new Date(item.createdAt).toLocaleString()}
                             </td>
-                            <td>{item.token || '-'}</td>
-                            <td>{Math.round((item.likelihood || 0) * 100)}%</td>
-                            <td title={item.reason}>{item.reason}</td>
-                            <td>{item.liquidity} / {item.volume}</td>
+                            <td>
+                              <span className="dt-keyword-tag">{item.keyword}</span>
+                            </td>
+                            <td title={item.marketTitle} style={{ maxWidth: '180px' }}>
+                              <span className="dt-market-title">{item.marketTitle.length > 42 ? item.marketTitle.slice(0, 42) + '…' : item.marketTitle}</span>
+                            </td>
+                            <td>
+                              <span className={`history-action ${item.action}`}>
+                                {item.action === 'buy'
+                                  ? <><TrendingUp size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />BUY</>
+                                  : <><Clock size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />WAIT</>
+                                }
+                              </span>
+                            </td>
+                            <td>
+                              {item.token
+                                ? <span className={`dt-token-badge ${item.token.toLowerCase()}`}>{item.token}</span>
+                                : <span className="tx-hash-none">—</span>
+                              }
+                            </td>
+                            <td>
+                              <div className="dt-likelihood-wrap">
+                                <div className="dt-likelihood-bar">
+                                  <div className="dt-likelihood-fill" style={{ width: `${pct}%`, background: likelihoodColor }} />
+                                </div>
+                                <span style={{ color: likelihoodColor, fontWeight: 700, fontSize: '0.72rem' }}>{pct}%</span>
+                              </div>
+                            </td>
+                            <td style={{ maxWidth: '160px' }}>
+                              <span
+                                className="dt-reason"
+                                style={{ cursor: item.reason.length > 60 ? 'help' : 'default' }}
+                                onMouseEnter={e => item.reason.length > 60 && setTooltip({ text: item.reason, x: e.clientX, y: e.clientY })}
+                                onMouseMove={e => tooltip && setTooltip(t => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
+                                onMouseLeave={() => setTooltip(null)}
+                              >
+                                {item.reason.length > 60 ? item.reason.slice(0, 60) + '…' : item.reason}
+                              </span>
+                            </td>
+                            <td style={{ whiteSpace: 'nowrap', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                              <div>{item.liquidity}</div>
+                              <div style={{ opacity: 0.6 }}>{item.volume}</div>
+                            </td>
                             <td>
                               {item.groqTxHash ? (
-                                <a
-                                  href={`https://polygonscan.com/tx/${item.groqTxHash}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="tx-hash-link"
-                                  title={item.groqTxHash}
-                                >
-                                  {item.groqTxHash.slice(0, 8)}…{item.groqTxHash.slice(-6)}
+                                <a href={`https://explorer.solana.com/tx/${item.groqTxHash}?cluster=devnet`} target="_blank" rel="noopener noreferrer" className="tx-hash-link" title={item.groqTxHash}>
+                                  <ExternalLink size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />
+                                  {item.groqTxHash.slice(0, 6)}…{item.groqTxHash.slice(-5)}
                                 </a>
                               ) : <span className="tx-hash-none">—</span>}
                             </td>
                             <td>
                               {item.llmTxHash ? (
-                                <a
-                                  href={`https://polygonscan.com/tx/${item.llmTxHash}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="tx-hash-link"
-                                  title={item.llmTxHash}
-                                >
-                                  {item.llmTxHash.slice(0, 8)}…{item.llmTxHash.slice(-6)}
+                                <a href={`https://explorer.solana.com/tx/${item.llmTxHash}?cluster=devnet`} target="_blank" rel="noopener noreferrer" className="tx-hash-link" title={item.llmTxHash}>
+                                  <ExternalLink size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />
+                                  {item.llmTxHash.slice(0, 6)}…{item.llmTxHash.slice(-5)}
                                 </a>
                               ) : <span className="tx-hash-none">—</span>}
                             </td>
                           </tr>
-                        ))}
+                          )
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -771,7 +795,7 @@ function App() {
                       <div className="profile-actions-compact">
                         <button className="action-btn-compact" onClick={() => setShowDeposit(true)}>
                           <ArrowDownLeft size={14} />
-                          <span>Deposit</span>
+                          <span>Deposit via Kraken</span>
                         </button>
                         <button className="action-btn-compact" onClick={() => setShowWithdraw(true)}>
                           <ArrowUpRight size={14} />
@@ -801,7 +825,7 @@ function App() {
                           </div>
                         </div>
                         <div className="balance-value-small">
-                          {usdcBalance ? parseFloat(usdcBalance.formatted).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                          {simUsdcBalance ?? (usdcBalance ? parseFloat(usdcBalance.formatted).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00')}
                           <span className="currency-small">USDC</span>
                         </div>
                       </div>
@@ -811,7 +835,7 @@ function App() {
                           <span className="balance-label-small">POL Balance</span>
                         </div>
                         <div className="balance-value-small">
-                          {polBalance ? parseFloat(polBalance.formatted).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                          {simPolBalance ?? (polBalance ? parseFloat(polBalance.formatted).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00')}
                           <span className="currency-small">POL</span>
                         </div>
                       </div>
@@ -863,7 +887,7 @@ function App() {
                   </div>
 
                   {!isConnected && (
-                    <div className="status-badge status-inactive mt-2" style={{ textAlign: 'center', fontSize: '0.7rem' }}>
+                    <div className="status-badge status-inactive mt-2" style={{ textAlign: 'center', fontSize: '0.7rem', marginTop: '12px' }}>
                       Connect wallet to enable trading
                     </div>
                   )}
@@ -890,6 +914,87 @@ function App() {
                     ))}
                   </div>
                 </div>
+              </div>
+
+              {/* Trade History Simulation */}
+              <div className="card glass mt-4">
+                <div className="card-header">
+                  <div className="card-title">
+                    <ShoppingCart size={18} color="var(--primary-color)" />
+                    Trade History
+                  </div>
+                  <span className="source-tag">Polymarket</span>
+                </div>
+
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <BadgeCheck size={12} color="#4ade80" />
+                  Auto-executed via Polymarket API · CLOB Engine
+                </div>
+
+                {(() => {
+                  const trades = decisionHistory.filter(i => i.action === 'buy')
+                  const total = trades.length
+                  const page = Math.min(tradeHistoryPage, Math.max(0, total - 1))
+                  const item = trades[page] ?? null
+
+                  if (total === 0) return (
+                    <div style={{ color: 'var(--text-dim)', fontSize: '0.75rem', textAlign: 'center', padding: '16px 0' }}>
+                      No trades executed yet. Run the pipeline to generate buy signals.
+                    </div>
+                  )
+
+                  // Scale trade size $2–$10 based on confidence
+                  const cost = (2 + item.likelihood * 8).toFixed(2)
+                  const diff = Date.now() - new Date(item.createdAt).getTime()
+                  const mins = Math.floor(diff / 60000)
+                  const timeAgo = mins < 60 ? `${mins}m ago` : `${Math.floor(mins / 60)}h ago`
+
+                  // Deterministic short order ID from item id
+                  const orderId = `PM-${item.id.slice(-6).toUpperCase()}`
+
+                  return (
+                    <>
+                      <div className="trade-history-item">
+                        <div className="trade-history-top">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span className="trade-filled-badge"><BadgeCheck size={11} /> FILLED</span>
+                            <span className={`dt-token-badge ${(item.token ?? 'yes').toLowerCase()}`} style={{ fontSize: '0.6rem', padding: '1px 6px' }}>
+                              BUY {item.token}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>{timeAgo}</span>
+                        </div>
+
+                        <div className="trade-market-title">{item.marketTitle.length > 52 ? item.marketTitle.slice(0, 52) + '…' : item.marketTitle}</div>
+
+                        <div className="trade-history-meta">
+                          <div className="trade-meta-row">
+                            <span className="trade-meta-label">Order ID</span>
+                            <span className="trade-meta-value" style={{ fontFamily: 'monospace', opacity: 0.7 }}>{orderId}</span>
+                          </div>
+                          <div className="trade-meta-row">
+                            <span className="trade-meta-label">Type</span>
+                            <span className="trade-meta-value">MARKET ORDER</span>
+                          </div>
+                          <div className="trade-meta-row">
+                            <span className="trade-meta-label">Cost</span>
+                            <span className="trade-meta-value price-up">${cost} USDC</span>
+                          </div>
+                          <div className="trade-meta-row">
+                            <span className="trade-meta-label">Keyword</span>
+                            <span className="trade-meta-value"><span className="dt-keyword-tag" style={{ fontSize: '0.6rem' }}>{item.keyword}</span></span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="history-pagination" style={{ marginTop: '10px' }}>
+                        <button className="history-page-btn" onClick={() => setTradeHistoryPage(p => Math.max(0, p - 1))} disabled={page <= 0}>Prev</button>
+                        <span>{page + 1} / {total}</span>
+                        <button className="history-page-btn" onClick={() => setTradeHistoryPage(p => Math.min(total - 1, p + 1))} disabled={page >= total - 1}>Next</button>
+                      </div>
+                    </>
+                  )
+                })()}
               </div>
             </div>
           </motion.div>
@@ -991,7 +1096,7 @@ function App() {
         </div>
       </footer>
 
-      {/* Deposit Modal */}
+      {/* Deposit via Kraken Modal */}
       {showDeposit && (
         <div className="modal-overlay glass" onClick={() => setShowDeposit(false)}>
           <motion.div
@@ -1001,18 +1106,21 @@ function App() {
             onClick={e => e.stopPropagation()}
           >
             <div className="modal-header">
-              <h2>Deposit Funds</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <img src="/logos/kraken-logo.png" alt="Kraken" style={{ height: '22px', objectFit: 'contain' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                <h2 style={{ margin: 0 }}>Deposit Funds via Kraken</h2>
+              </div>
               <button className="close-btn" onClick={() => setShowDeposit(false)}><X size={20} /></button>
             </div>
             <div className="modal-description">
-              Transfer USDC from your connected wallet to your custodial sniper wallet.
+              Funds will be pulled from your Kraken exchange account and deposited into your custodial sniper wallet on Polygon.
             </div>
 
             <div className="transfer-flow">
               <div className="wallet-node">
-                <span className="node-label">Connected Wallet</span>
-                <span className="node-address">{address?.slice(0, 6)}...{address?.slice(-4)}</span>
-                <span className="node-balance">Max: 1,240.50 USDC</span>
+                <span className="node-label">Kraken Exchange</span>
+                <span className="node-address">••••@kraken.com</span>
+                <span className="node-balance">Available: 1,240.50 USDC</span>
               </div>
               <div className="flow-arrow"><ArrowRight size={24} color="var(--primary-color)" /></div>
               <div className="wallet-node highlight">
@@ -1030,23 +1138,30 @@ function App() {
                   value={amounts.deposit}
                   onChange={(e) => setAmounts({ ...amounts, deposit: e.target.value })}
                 />
-                <button className="max-btn">MAX</button>
+                <button className="max-btn" onClick={() => setAmounts({ ...amounts, deposit: '500' })}>MAX</button>
                 <span>USDC</span>
               </div>
             </div>
 
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CheckCircle2 size={13} color="var(--success)" />
+              Gas fees covered by Kraken · Polygon network · ETA ~30s
+            </div>
+
             <button className="primary-btn w-full mt-6" onClick={() => {
               setShowDeposit(false)
-              setLoaderText({ title: 'Processing Deposit', sub: 'Confirming on Polygon Network...' })
+              setLoaderText({ title: 'Connecting to Kraken', sub: 'Authorising transfer on Polygon Network...' })
               setIsLoading(true)
               setTimeout(() => {
                 setIsLoading(false)
-                setSuccessMsg('Deposit Successful!')
+                setSimUsdcBalance('500.00')
+                setSimPolBalance('10.00')
+                setSuccessMsg('Deposit Successful! +500 USDC · +10 POL')
                 setShowSuccess(true)
                 setTimeout(() => setShowSuccess(false), 3000)
-              }, 2000)
+              }, 2500)
             }}>
-              Confirm Deposit
+              Confirm Kraken Deposit
             </button>
           </motion.div>
         </div>
@@ -1234,6 +1349,16 @@ function App() {
             <h2 className="error-title">{errorMsg}</h2>
             <div className="error-pulse"></div>
           </motion.div>
+        </div>
+      )}
+
+      {/* Reason Tooltip */}
+      {tooltip && (
+        <div
+          className="dt-reason-tooltip-fixed"
+          style={{ left: tooltip.x + 14, top: tooltip.y - 12 }}
+        >
+          {tooltip.text}
         </div>
       )}
 

@@ -18,9 +18,9 @@ import {
 
 const config = getDefaultConfig({
   appName: 'Polymarket Sniper Bot',
-  projectId: 'YOUR_PROJECT_ID', // Replace with your WalletConnect Project ID
+  projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
   chains: [polygonAmoy],
-  ssr: true, // If your dApp uses server side rendering (SSR)
+  ssr: false,
 })
 
 const queryClient = new QueryClient()

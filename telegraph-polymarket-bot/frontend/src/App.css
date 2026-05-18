@@ -1607,6 +1607,174 @@
   color: var(--text-muted);
 }
 
+/* Decision table enhancements */
+.dt-keyword-tag {
+  display: inline-block;
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dt-market-title {
+  color: var(--text-primary);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.dt-token-badge {
+  display: inline-block;
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+.dt-token-badge.yes {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+.dt-token-badge.no {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.dt-likelihood-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 80px;
+}
+.dt-likelihood-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.dt-likelihood-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.dt-reason {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+/* ── Trade History Simulation ─────────────────────────── */
+.trade-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.trade-history-list::-webkit-scrollbar { width: 4px; }
+.trade-history-list::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+}
+
+.trade-history-item {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 12px;
+  transition: border-color 0.2s;
+}
+.trade-history-item:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.trade-history-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+
+.trade-filled-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.trade-market-title {
+  font-size: 0.75rem;
+  color: var(--text-primary);
+  font-weight: 500;
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
+.trade-history-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+}
+
+.trade-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.trade-meta-label {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.trade-meta-value {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* ── Reason tooltip ────────────────────────────────────── */
+.dt-reason-tooltip-fixed {
+  position: fixed;
+  max-width: 280px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98));
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.04);
+  color: #e2e8f0;
+  font-size: 0.75rem;
+  line-height: 1.65;
+  white-space: normal;
+  z-index: 9999;
+  pointer-events: none;
+  backdrop-filter: blur(16px);
+  animation: tooltipIn 0.15s ease;
+}
+
+@keyframes tooltipIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .history-status {
   font-size: 0.8rem;
   color: var(--text-muted);
@@ -2157,3 +2325,194 @@
   color: var(--text-dim);
   font-size: 0.8rem;
 }
+
+/* ── Terminal Feed ─────────────────────────────────────────── */
+.terminal-container {
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  margin-top: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.terminal-header {
+  background: rgba(15, 23, 42, 0.5);
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.terminal-header-title {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.terminal-header-dots {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.terminal-header-dots .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.terminal-header-dots .red  { background: #ff5f56; }
+.terminal-header-dots .yellow { background: #ffbd2e; }
+.terminal-header-dots .green  { background: #27c93f; }
+
+.terminal-body {
+  padding: 1.25rem;
+  color: #e2e8f0;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.terminal-body::-webkit-scrollbar { width: 6px; }
+.terminal-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+
+.terminal-title {
+  color: #f8fafc;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.terminal-group-header {
+  display: flex;
+  color: #94a3b8;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.4rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.terminal-col-time {
+  width: 125px;
+  flex-shrink: 0;
+  padding-top: 0.1rem;
+}
+
+.terminal-time-badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-family: 'SFMono-Regular', Consolas, Menlo, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.terminal-col-group { flex: 1; }
+
+.terminal-row {
+  display: flex;
+  margin-bottom: 1rem;
+  animation: termFadeIn 0.3s ease-out;
+}
+
+.terminal-col-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  align-items: flex-start;
+}
+
+.terminal-level {
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 0.15rem;
+  color: #ffffff;
+}
+
+.terminal-text {
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  font-weight: 400;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  white-space: pre;
+}
+
+.terminal-cursor {
+  display: inline-block;
+  width: 10px;
+  height: 20px;
+  background: var(--primary-color);
+  animation: termBlink 1s step-end infinite;
+  margin-top: 0.5rem;
+  border-radius: 2px;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+}
+
+.terminal-receipt {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.5), rgba(15, 23, 42, 0.8));
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.receipt-title {
+  text-align: center;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+  color: #e2e8f0;
+  letter-spacing: 0.05em;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.receipt-row:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.receipt-label { color: #94a3b8; font-size: 0.875rem; }
+.receipt-value { color: #f8fafc; font-weight: 700; font-size: 0.875rem; text-align: right; }
+
+.animate-in { animation: termSlideUp 0.3s ease-out forwards; }
+
+@keyframes termFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes termBlink   { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes termSlideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

@@ -51,19 +51,34 @@ export class TelegraphLlmService {
         ? params.relatedNews.map((item, idx) => `${idx + 1}. ${item.summary}`).join('\n')
         : 'No related news found.';
 
-    const prompt = [
+    const yesPrice = parseFloat(params.market.yesPrice) || 0.5;
+    const noPrice = parseFloat(params.market.noPrice) || 0.5;
+    const cheaperToken = yesPrice <= noPrice ? 'YES' : 'NO';
+
+    const systemPrompt = [
+      'You are an aggressive prediction market trader on Polymarket. Your only goal is to find trades.',
+      'Rules (follow strictly):',
+      '1. Set likelihood = your estimated true probability that the event occurs (0.0–1.0).',
+      '2. If likelihood >= 0.50, you MUST set action="buy". Choosing wait with likelihood >= 0.50 is forbidden.',
+      '3. If likelihood < 0.40, set action="wait" and token=null.',
+      '4. Between 0.40 and 0.49, use news sentiment to decide: lean toward buy if there is any supporting signal.',
+      '5. When action="buy": set token="YES" if you believe the event will happen, token="NO" if you believe it will not.',
+      '6. Do NOT conflate uncertainty about Trump\'s exact words with uncertainty about whether an event occurs — focus on the most probable outcome.',
+    ].join(' ');
+
+    const userPrompt = [
       `Keyword: ${params.keyword}`,
-      `Market title: ${params.market.title}`,
-      `Market slug: ${params.market.slug}`,
-      `YES price: ${params.market.yesPrice}`,
-      `NO price: ${params.market.noPrice}`,
-      `Liquidity: ${params.market.liquidity}`,
-      `Volume: ${params.market.volume}`,
-      'Related news:',
+      `Market: "${params.market.title}"`,
+      `YES price: ${params.market.yesPrice} | NO price: ${params.market.noPrice} (cheaper side: ${cheaperToken})`,
+      `Liquidity: ${params.market.liquidity} | Volume: ${params.market.volume}`,
+      '',
+      'Recent news:',
       newsContext,
-      'Return strictly valid JSON with schema:',
-      '{"action":"buy|wait","token":"YES|NO|null","likelihood":0-1,"reason":"short explanation"}',
-      'If uncertain, choose wait.',
+      '',
+      'Step 1: Estimate likelihood (0.0–1.0) that the event resolves YES.',
+      'Step 2: Apply the rules above to set action and token.',
+      'Return ONLY valid JSON, no markdown:',
+      '{"action":"buy|wait","token":"YES|NO|null","likelihood":0.0-1.0,"reason":"one sentence max"}',
     ].join('\n');
 
     try {
@@ -73,7 +88,10 @@ export class TelegraphLlmService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'gpt-4o-mini',
-          messages: [{ role: 'user', content: prompt }],
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
           max_tokens: 250,
         }),
         signal: AbortSignal.timeout(25000),
@@ -83,7 +101,7 @@ export class TelegraphLlmService {
 
       if (!response.ok) {
         if (response.status === 402) {
-          console.error(`Telegraph LLM payment failed for "${params.market.title}": check ADMIN_EVM_PRIVATE_KEY and Base mainnet USDC balance`);
+          console.error(`Telegraph LLM payment failed for "${params.market.title}": check SOLANA_PRIVATE_KEY and Solana USDC balance`);
           return { ...fallbackDecision('x402 payment failed for LLM call'), llmTxHash };
         }
         return fallbackDecision(`LLM request failed: HTTP ${response.status}`);
@@ -102,14 +120,22 @@ export class TelegraphLlmService {
         return { ...fallbackDecision('LLM output was not valid JSON'), llmTxHash };
       }
 
-      const action = normalizeAction(parsed.action);
+      let action = normalizeAction(parsed.action);
       if (!action) return { ...fallbackDecision('LLM action was invalid'), llmTxHash };
 
-      const token = normalizeToken(parsed.token);
-      const likelihoodNumber = Number(parsed.likelihood);
-      const likelihood = Number.isFinite(likelihoodNumber)
-        ? Math.max(0, Math.min(1, likelihoodNumber))
-        : 0;
+      const likelihoodRaw = Number(parsed.likelihood);
+      const likelihood = Number.isFinite(likelihoodRaw) ? Math.max(0, Math.min(1, likelihoodRaw)) : 0;
+
+      // Override: model said wait but confidence is high enough to trade
+      if (action === 'wait' && likelihood >= 0.5) {
+        action = 'buy';
+      }
+
+      let token = normalizeToken(parsed.token);
+      // Ensure token is set when buying
+      if (action === 'buy' && !token) {
+        token = yesPrice <= noPrice ? 'YES' : 'NO';
+      }
       const reason =
         typeof parsed.reason === 'string' && parsed.reason.trim().length > 0
           ? parsed.reason.trim()

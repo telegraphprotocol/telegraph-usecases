@@ -1,9 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAccount, useSignMessage, useChainId, useSwitchChain, useDisconnect } from 'wagmi';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useAccount, useSignMessage, useDisconnect } from 'wagmi';
 import api from '../utils/api';
-import { subscriptionConfig } from '../utils/subscription';
-
-const SUBSCRIPTION_CHAIN_ID = subscriptionConfig.chainId;
 
 export const useAuth = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -11,12 +8,17 @@ export const useAuth = () => {
   const [user, setUser] = useState<any>(null);
 
   const { address, isConnected } = useAccount();
-  const chainId = useChainId();
-  const { switchChainAsync } = useSwitchChain();
   const { signMessageAsync } = useSignMessage();
   const { disconnect } = useDisconnect();
 
-  const checkStatus = useCallback(async () => {
+  // Ref guard — prevents concurrent or duplicate login calls
+  const loginInProgressRef = useRef(false);
+
+  // Stable refs so the effect below can call these without them being deps
+  const signMessageRef = useRef(signMessageAsync);
+  signMessageRef.current = signMessageAsync;
+
+  const checkStatus = useCallback(async (): Promise<boolean> => {
     const token = localStorage.getItem('telegraph_token');
     if (!token) return false;
 
@@ -25,7 +27,7 @@ export const useAuth = () => {
       setUser(data.user);
       setIsLoggedIn(true);
       return true;
-    } catch (e) {
+    } catch {
       localStorage.removeItem('telegraph_token');
       setIsLoggedIn(false);
       setUser(null);
@@ -33,44 +35,31 @@ export const useAuth = () => {
     }
   }, []);
 
-  const login = useCallback(async () => {
-    if (!address || !isConnected) return;
+  const login = useCallback(async (addr: string) => {
+    if (loginInProgressRef.current) return;
+    loginInProgressRef.current = true;
+    setIsAuthenticating(true);
 
     try {
-      setIsAuthenticating(true);
-
-      // 1. Ensure correct network
-      if (chainId !== SUBSCRIPTION_CHAIN_ID) {
-        try {
-          await switchChainAsync({ chainId: SUBSCRIPTION_CHAIN_ID });
-          // Network switch will trigger a re-render and checkStatus/login loop handled by useEffect
-          return;
-        } catch (e) {
-          console.error('Failed to switch network', e);
-          return;
-        }
-      }
-
-      // 2. Get login message
+      // 1. Get message
       const { data: { message } } = await api.get('/auth/message');
 
-      // 3. Sign message
-      const signature = await signMessageAsync({ message, account: address as `0x${string}` });
+      // 2. Sign once — let wagmi use the connected account (no account override)
+      const signature = await signMessageRef.current({ message });
 
-      // 4. Verify and get JWT
-      const { data: { token, user: userData } } = await api.post('/auth/verify', { address, signature });
+      // 3. Verify → receive JWT, store it
+      const { data: { token, user: userData } } = await api.post('/auth/verify', { address: addr, signature });
 
       localStorage.setItem('telegraph_token', token);
       setUser(userData);
       setIsLoggedIn(true);
-
     } catch (error) {
-      console.error('Authentication failed:', error);
-      disconnect();
+      console.error('[auth] login failed:', error);
     } finally {
+      loginInProgressRef.current = false;
       setIsAuthenticating(false);
     }
-  }, [address, isConnected, chainId, switchChainAsync, signMessageAsync, disconnect]);
+  }, []); // no deps — address passed as argument, signMessage accessed via ref
 
   const logout = useCallback(() => {
     localStorage.removeItem('telegraph_token');
@@ -79,43 +68,39 @@ export const useAuth = () => {
     disconnect();
   }, [disconnect]);
 
-  // Handle initialization and connection changes
+  // Main flow: runs only when wallet connection state changes.
+  // Check stored JWT first → sign only if there is none / it's expired.
   useEffect(() => {
+    if (!isConnected || !address) {
+      setIsLoggedIn(false);
+      setUser(null);
+      return;
+    }
+
+    let cancelled = false;
+
     const init = async () => {
-      if (isConnected && address) {
-        const isValid = await checkStatus();
-        if (!isValid) {
-          await login();
-        }
-      } else {
-        setIsLoggedIn(false);
-        setUser(null);
+      const valid = await checkStatus();
+      if (!cancelled && !valid) {
+        await login(address);
       }
     };
 
     init();
-  }, [isConnected, address, checkStatus, login]);
 
-  // Listen for global auth required events (e.g. from 401 interceptor)
+    return () => { cancelled = true; };
+  }, [isConnected, address]); // intentionally excludes login/checkStatus — they don't need to re-trigger this
+
+  // Re-auth when a protected route returns 401 (token expired mid-session)
   useEffect(() => {
-    const handleAuthRequired = () => {
+    const handle = () => {
       setIsLoggedIn(false);
       setUser(null);
-      if (isConnected && address) {
-        login();
-      }
+      if (isConnected && address) login(address);
     };
-
-    window.addEventListener('auth_required', handleAuthRequired);
-    return () => window.removeEventListener('auth_required', handleAuthRequired);
+    window.addEventListener('auth_required', handle);
+    return () => window.removeEventListener('auth_required', handle);
   }, [isConnected, address, login]);
 
-  return {
-    isLoggedIn,
-    isAuthenticating,
-    user,
-    login,
-    logout,
-    checkStatus
-  };
+  return { isLoggedIn, isAuthenticating, user, login: () => address && login(address), logout, checkStatus };
 };

@@ -13,13 +13,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 errors globally
+// Handle 401 errors globally — but never on auth endpoints themselves (would cause an infinite loop)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    const url: string = error.config?.url ?? '';
+    if (error.response?.status === 401 && !url.includes('/auth/')) {
       localStorage.removeItem('telegraph_token');
-      // We could also trigger a window event or a callback to update global state
       window.dispatchEvent(new Event('auth_required'));
     }
     return Promise.reject(error);

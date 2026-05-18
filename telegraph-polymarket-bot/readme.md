@@ -111,3 +111,4 @@ npm run dev            # runs on http://localhost:3000
 | Payment protocol | x402 |
 | Payment network | Polygon (EVM / USDC) |
 | Containerisation | Docker + Docker Compose |
+

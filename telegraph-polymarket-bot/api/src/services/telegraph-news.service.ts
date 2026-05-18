@@ -130,7 +130,7 @@ export class TelegraphNewsService {
         if (!response.ok) {
           const status = response.status;
           if (status === 402) {
-            console.error(`Telegraph news lookup failed for "${query}": x402 payment failed — check ADMIN_EVM_PRIVATE_KEY and Base mainnet USDC balance`);
+            console.error(`Telegraph news lookup failed for "${query}": x402 payment failed — check SOLANA_PRIVATE_KEY and Solana USDC balance`);
             return { items: [], meta: { retriesAttempted, rateLimitEncountered, groqTxHash } };
           }
           if (status === 429) rateLimitEncountered = true;
