@@ -30,7 +30,7 @@ export class ItsAiClient {
   }
 
   async detectText(text: string): Promise<ItsAiDetectResponse> {
-    const url = `${this.baseUrl}${this.subnetPrefix}/detect`;
+    const url = `${this.baseUrl}${this.subnetPrefix}`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
@@ -43,7 +43,7 @@ export class ItsAiClient {
           "Content-Type": "application/json",
           Accept: "application/json"
         },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ Method: "POST", Endpoint: "/detect", payload: { text } }),
         signal: controller.signal
       });
     } catch (error) {
@@ -67,7 +67,7 @@ export class ItsAiClient {
     if (!response.ok) {
       const hint =
         response.status === 405
-          ? " (wrong host/port? Subnet dispatcher is usually on :7044, not plain :80.)"
+          ? " (wrong host/port? Engine API is on :7044 at /engine/v1/ask/:miner_id)"
           : "";
       let detail = "";
       try {
@@ -83,9 +83,9 @@ export class ItsAiClient {
       );
     }
 
-    let body: ItsAiDetectResponse;
+    let envelope: Record<string, unknown>;
     try {
-      body = (await response.json()) as ItsAiDetectResponse;
+      envelope = (await response.json()) as Record<string, unknown>;
     } catch {
       throw new UpstreamError(
         "ITSAI_INVALID_JSON",
@@ -94,10 +94,15 @@ export class ItsAiClient {
       );
     }
 
+    // Engine API wraps subnet response in { result: <actual payload>, ... }
+    const body = (typeof envelope.result === "object" && envelope.result !== null
+      ? envelope.result
+      : envelope) as ItsAiDetectResponse;
+
     if (typeof body.answer !== "number") {
       throw new UpstreamError(
         "ITSAI_INVALID_RESPONSE",
-        "ItsAI response missing numeric answer",
+        `ItsAI response missing numeric answer. Got: ${JSON.stringify(envelope).slice(0, 200)}`,
         502
       );
     }

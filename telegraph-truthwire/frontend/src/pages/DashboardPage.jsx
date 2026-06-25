@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldCheck, Search, ArrowLeft, Bot, CheckCircle, AlertTriangle, Copy, ExternalLink, ShieldCheck as ProofIcon } from 'lucide-react';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { GlobalMouseTracker } from '../useMousePosition';
-import WalletBalances from '../solana/WalletBalances';
 import TerminalFeed from '../components/TerminalFeed';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
@@ -121,12 +119,19 @@ const DashboardPage = () => {
       
       <header className="top-nav">
         <Link to="/" className="logo">
-          <ShieldCheck size={28} color="var(--accent-color)" />
+          <ShieldCheck size={18} />
           <span>TruthWire</span>
         </Link>
         <div className="nav-wallet">
-           <WalletBalances />
-           <WalletMultiButton className="wallet-connect-btn" />
+          <a
+            href="https://docs.telegraphprotocol.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary"
+            style={{ padding: '0.35rem 0.9rem', fontSize: '0.65rem' }}
+          >
+            Docs
+          </a>
         </div>
       </header>
 

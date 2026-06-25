@@ -29,10 +29,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   return {
     vxApiBase: env.VX_API_BASE ?? "https://api.vxtwitter.com",
     // Port 80 on this host is nginx (UI); subnet-dispatcher APIs listen on 7044 (see example scripts).
-    telegraphBaseUrl: env.TELEGRAPH_BASE_URL ?? "http://54.252.48.30:7044",
-    bitmindSubnetPrefix: env.BITMIND_SUBNET_PREFIX ?? "/subnet-dispatcher/v1/34",
+    telegraphBaseUrl: env.TELEGRAPH_BASE_URL ?? "http://13.237.89.59:7044",
+    bitmindSubnetPrefix: env.BITMIND_SUBNET_PREFIX ?? "/engine/v1/ask/34",
     bitmindRequestTimeoutMs: parseTimeoutMs(env.BITMIND_REQUEST_TIMEOUT_MS, telegraphTimeout),
-    itsAiSubnetPrefix: env.ITSAI_SUBNET_PREFIX ?? "/subnet-dispatcher/v1/32",
+    itsAiSubnetPrefix: env.ITSAI_SUBNET_PREFIX ?? "/engine/v1/ask/32",
     itsAiRequestTimeoutMs: parseTimeoutMs(env.ITSAI_REQUEST_TIMEOUT_MS, telegraphTimeout),
     solanaNetwork: env.SOLANA_NETWORK === "mainnet" ? "mainnet" : "devnet"
   };
