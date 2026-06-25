@@ -62,3 +62,11 @@ Paste an Amazon product URL — ReviewRadar fetches up to three recent reviews v
 Connect an EVM wallet, activate a subscription, and enable automated prediction market trading. Every two hours the bot fetches active Polymarket markets by keyword, retrieves relevant news via DeSearch (subnet 101), and passes the context to the Groq LLM (subnet 102) for a trade decision (YES / NO / HOLD). All inference calls are paid on-chain via Polygon USDC.
 
 **Subnets:** DeSearch (101), Groq LLM (102) — **Payment:** Polygon USDC (EVM)
+
+---
+
+### [AdGuard](./telegraph-adguard/README.md)
+
+Paste an article or news page URL — AdGuard extracts the text and images, scores every image for deepfakes via Bitmind (subnet 34) and classifies the article text as AI-generated or human via ItsAI (subnet 32), then combines both signals into a weighted threat score. If the score exceeds the configured threshold, selected Google Ads campaigns are paused automatically through the Google Ads API to protect brand integrity.
+
+**Subnets:** Bitmind (34), ItsAI (32) — **Payment:** Solana USDC
