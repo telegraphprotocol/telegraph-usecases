@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useState } from "react";
 import {
   Radar,
   Search,
@@ -43,20 +43,9 @@ type UiState =
     };
 
 export default function App() {
-  const [mouse, setMouse] = useState({ x: 50, y: 50 });
   const [url, setUrl] = useState("");
   const [state, setState] = useState<UiState>({ kind: "idle" });
   const [terminalFinished, setTerminalFinished] = useState(false);
-
-  useEffect(() => {
-    const onMouseMove = (event: MouseEvent) => {
-      const x = (event.clientX / window.innerWidth) * 100;
-      const y = (event.clientY / window.innerHeight) * 100;
-      setMouse({ x, y });
-    };
-    window.addEventListener("mousemove", onMouseMove);
-    return () => window.removeEventListener("mousemove", onMouseMove);
-  }, []);
 
   const onSearch = useCallback(async () => {
     const productUrl = url.trim();
@@ -105,51 +94,29 @@ export default function App() {
   }, [url]);
 
   return (
-    <div
-      className="dash-page"
-      style={
-        {
-          "--mouse-x": `${mouse.x}%`,
-          "--mouse-y": `${mouse.y}%`,
-        } as CSSProperties
-      }
-    >
-      <div
-        className="bg-orb orb-one"
-        style={
-          {
-            "--mx": `${(mouse.x - 50) * 1.2}px`,
-            "--my": `${(mouse.y - 50) * 1.1}px`,
-          } as CSSProperties
-        }
-      />
-      <div
-        className="bg-orb orb-two"
-        style={
-          {
-            "--mx": `${(50 - mouse.x) * 1.3}px`,
-            "--my": `${(50 - mouse.y) * 1.15}px`,
-          } as CSSProperties
-        }
-      />
-      <div className="grid-overlay" aria-hidden="true" />
-
-      <nav className="dash-nav glass">
+    <div className="dash-page">
+      <nav className="dash-nav">
         <div className="dash-brand">
-          <span className="dash-brand-icon" aria-hidden="true">
-            <Radar size={20} strokeWidth={2.2} />
-          </span>
+          <Radar size={18} strokeWidth={2.2} />
           <span>ReviewRadar</span>
+          <span className="dash-brand-sub">by Telegraph</span>
         </div>
-        <span className="dash-nav-tag">Live analysis</span>
+        <a
+          href="https://docs.telegraphprotocol.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="dash-nav-docs"
+        >
+          Docs
+        </a>
       </nav>
 
       <main className="dash-main">
         <header className="dash-hero">
-          <p className="dash-badge glass">
+          <div className="dash-badge">
             <ShoppingCart size={14} aria-hidden="true" />
             Amazon · ItsAI · x402 on Solana
-          </p>
+          </div>
           <h1>Check reviews before you buy</h1>
           <p className="dash-subtitle">
             Paste an Amazon product link. We pull recent reviews, run AI-vs-human detection via
@@ -157,11 +124,11 @@ export default function App() {
           </p>
         </header>
 
-        <section className="dash-search-shell glass">
-          <p className="dash-label">
-            <Search size={18} aria-hidden="true" />
+        <section className="dash-search-shell">
+          <div className="dash-label">
+            <Search size={16} aria-hidden="true" />
             Product URL
-          </p>
+          </div>
           <div className="dash-form-row">
             <input
               type="url"
@@ -204,15 +171,15 @@ export default function App() {
         ) : null}
 
         {terminalFinished && state.kind === "ok" && state.data.warning ? (
-          <div className="dash-banner warn glass">{state.data.warning}</div>
+          <div className="dash-banner warn">{state.data.warning}</div>
         ) : null}
 
         {terminalFinished && state.kind === "err" && state.warning ? (
-          <div className="dash-banner warn glass">{state.warning}</div>
+          <div className="dash-banner warn">{state.warning}</div>
         ) : null}
 
         {terminalFinished && state.kind === "err" ? (
-          <div className="dash-banner err glass">
+          <div className="dash-banner err">
             <strong>{state.message}</strong>
             {state.detail ? <div style={{ marginTop: "0.4rem" }}>{state.detail}</div> : null}
             {state.asin ? (
@@ -279,7 +246,7 @@ function ProductPreviewPanel({
   const image = product?.image?.trim();
 
   return (
-    <section className="dash-product-card glass" aria-label="Product preview">
+    <section className="dash-product-card" aria-label="Product preview">
       <div className="dash-product-thumb-wrap">
         {image ? (
           <img className="dash-product-thumb" src={image} alt="" loading="lazy" />
@@ -321,7 +288,7 @@ function SignalSummary({ items }: { items: AnalyzeItem[] }) {
   if (items.length === 0) return null;
 
   return (
-    <section className="dash-signal-summary glass" aria-label="AI vs human breakdown">
+    <section className="dash-signal-summary" aria-label="AI vs human breakdown">
       <div className="dash-section-label">This sample · ItsAI</div>
       <p className="dash-signal-lead">
         {s.definitive > 0 ? (
@@ -383,7 +350,7 @@ function ResultCard({ index, item }: { index: number; item: AnalyzeItem }) {
     );
 
   return (
-    <article className="dash-result-card glass">
+    <article className="dash-result-card">
       <div className="dash-result-head">
         <h2>
           <span className="dash-result-index">{index}</span>

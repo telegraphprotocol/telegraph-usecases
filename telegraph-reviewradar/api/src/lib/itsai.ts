@@ -34,7 +34,7 @@ export async function detectText(
   resourceBaseUrl: string,
 ): Promise<{ data: unknown; txHash: string | null }> {
   const base = resourceBaseUrl.replace(/\/$/, "");
-  const url = `${base}/subnet-dispatcher/v1/32/detect`;
+  const url = `${base}/engine/v1/ask/32`;
   const timeoutMs = parseTimeoutMs(process.env.ITSAI_REQUEST_TIMEOUT_MS, 60_000);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -47,7 +47,7 @@ export async function detectText(
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ Method: "POST", Endpoint: "/detect", payload: { text } }),
       signal: controller.signal,
     });
   } catch (e) {
@@ -61,11 +61,11 @@ export async function detectText(
   }
 
   const raw = await res.text();
-  let data: unknown;
+  let envelope: Record<string, unknown>;
   try {
-    data = JSON.parse(raw) as unknown;
+    envelope = JSON.parse(raw) as Record<string, unknown>;
   } catch {
-    data = { parseError: true, raw: raw.slice(0, 2000) };
+    envelope = { parseError: true, raw: raw.slice(0, 2000) };
   }
 
   const headerTx = extractTxHashFromHeaders(res.headers);
@@ -73,6 +73,11 @@ export async function detectText(
   if (!res.ok) {
     throw new Error(`ItsAI HTTP ${res.status}: ${raw.slice(0, 800)}`);
   }
+
+  // Engine API wraps subnet response in { result: <actual payload>, ... }
+  const data = (typeof envelope.result === "object" && envelope.result !== null
+    ? envelope.result
+    : envelope) as unknown;
 
   return { data, txHash: headerTx };
 }
