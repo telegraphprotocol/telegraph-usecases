@@ -28,7 +28,7 @@ export class BitMindClient {
   }
 
   async detectImage(image: string): Promise<BitMindDetectImageResponse> {
-    const url = `${this.baseUrl}${this.subnetPrefix}/detect-image`;
+    const url = `${this.baseUrl}${this.subnetPrefix}`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
@@ -41,7 +41,7 @@ export class BitMindClient {
           "Content-Type": "application/json",
           Accept: "application/json"
         },
-        body: JSON.stringify({ image }),
+        body: JSON.stringify({ Method: "POST", Endpoint: "/detect-image", payload: { image } }),
         signal: controller.signal
       });
     } catch (error) {
@@ -81,9 +81,9 @@ export class BitMindClient {
       );
     }
 
-    let body: BitMindDetectImageResponse;
+    let envelope: Record<string, unknown>;
     try {
-      body = (await response.json()) as BitMindDetectImageResponse;
+      envelope = (await response.json()) as Record<string, unknown>;
     } catch {
       throw new UpstreamError(
         "BITMIND_INVALID_JSON",
@@ -92,6 +92,11 @@ export class BitMindClient {
       );
     }
 
+    // Engine API wraps subnet response in { result: <actual payload>, ... }
+    const body = (typeof envelope.result === "object" && envelope.result !== null
+      ? envelope.result
+      : envelope) as BitMindDetectImageResponse;
+
     if (
       body.isAI === undefined &&
       body.isAi === undefined &&
@@ -99,7 +104,7 @@ export class BitMindClient {
     ) {
       throw new UpstreamError(
         "BITMIND_INVALID_RESPONSE",
-        "BitMind response missing isAI/isAi/confidence",
+        `BitMind response missing isAI/isAi/confidence. Got: ${JSON.stringify(envelope).slice(0, 200)}`,
         502
       );
     }

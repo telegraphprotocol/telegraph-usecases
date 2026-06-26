@@ -3,6 +3,8 @@ import { createApp } from "./app";
 import { loadLocalEnv } from "./loadLocalEnv";
 
 loadLocalEnv();
+console.log("[env] TELEGRAPH_BASE_URL:", process.env.TELEGRAPH_BASE_URL);
+console.log("[env] ITSAI_SUBNET_PREFIX:", process.env.ITSAI_SUBNET_PREFIX);
 
 if (process.env.DNS_RESULT_ORDER !== "verbatim") {
   dns.setDefaultResultOrder("ipv4first");

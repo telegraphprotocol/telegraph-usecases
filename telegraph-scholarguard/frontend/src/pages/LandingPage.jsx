@@ -16,14 +16,13 @@ const LandingPage = () => {
         <div className="landing-above-fold">
           <header className="top-nav">
             <div className="logo">
-              <Shield size={28} color="var(--accent-color)" />
+              <Shield size={18} />
               <span>ScholarGuard</span>
+              <span style={{ opacity: 0.35, fontSize: '0.6rem', letterSpacing: '0.1em', marginLeft: '0.25rem' }}>
+                by Telegraph
+              </span>
             </div>
-            <Link
-              to="/dashboard"
-              className="btn-primary"
-              style={{ padding: '0.4rem 1rem', fontSize: '0.9rem' }}
-            >
+            <Link to="/dashboard" className="btn-primary" style={{ padding: '0.35rem 0.9rem', fontSize: '0.65rem' }}>
               Launch Dashboard
             </Link>
           </header>
@@ -32,19 +31,19 @@ const LandingPage = () => {
             <section className="text-center landing-hero">
               <div className="landing-badges">
                 <div className="badge">
-                  <Zap size={14} color="#f59e0b" />
+                  <Zap size={11} />
                   <span>Powered by Telegraph</span>
                 </div>
                 <div className="badge">
-                  <span style={{ fontWeight: 'bold', color: '#a78bfa' }}>✦</span>
+                  <span style={{ fontWeight: 'bold' }}>✦</span>
                   <span>AI Detection via ItsAI</span>
                 </div>
                 <div className="badge">
-                  <Lock size={13} color="var(--accent-green)" />
+                  <Lock size={11} />
                   <span>Cryptographic Proof</span>
                 </div>
                 <div className="badge">
-                  <Zap size={13} color="#60a5fa" />
+                  <Zap size={11} />
                   <span>Instant Results</span>
                 </div>
               </div>
@@ -83,7 +82,7 @@ const LandingPage = () => {
             <div className="features-grid">
               <div className="feature-card animate-on-scroll delay-100">
                 <div className="feature-icon">
-                  <Shield size={22} color="var(--accent-color)" />
+                  <Shield size={18} />
                 </div>
                 <h3>AI Content Detection</h3>
                 <p>
@@ -94,7 +93,7 @@ const LandingPage = () => {
 
               <div className="feature-card animate-on-scroll delay-200">
                 <div className="feature-icon">
-                  <FileCheck size={22} color="var(--accent-secondary)" />
+                  <FileCheck size={18} />
                 </div>
                 <h3>PDF &amp; DOCX Support</h3>
                 <p>
@@ -105,7 +104,7 @@ const LandingPage = () => {
 
               <div className="feature-card animate-on-scroll delay-300">
                 <div className="feature-icon">
-                  <Hash size={22} color="var(--accent-green)" />
+                  <Hash size={18} />
                 </div>
                 <h3>Cryptographic Proof</h3>
                 <p>

@@ -30,7 +30,10 @@ export class ItsAiClient {
   }
 
   async detectText(text: string): Promise<ItsAiDetectResponse> {
-    const url = `${this.baseUrl}${this.subnetPrefix}/detect`;
+    const url = `${this.baseUrl}${this.subnetPrefix}`;
+    console.log("[ItsAI] baseUrl:", this.baseUrl);
+    console.log("[ItsAI] subnetPrefix:", this.subnetPrefix);
+    console.log("[ItsAI] full url:", url);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
@@ -43,7 +46,7 @@ export class ItsAiClient {
           "Content-Type": "application/json",
           Accept: "application/json"
         },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ Method: "POST", Endpoint: "/detect", payload: { text } }),
         signal: controller.signal
       });
     } catch (error) {
@@ -83,9 +86,9 @@ export class ItsAiClient {
       );
     }
 
-    let body: ItsAiDetectResponse;
+    let envelope: Record<string, unknown>;
     try {
-      body = (await response.json()) as ItsAiDetectResponse;
+      envelope = (await response.json()) as Record<string, unknown>;
     } catch {
       throw new UpstreamError(
         "ITSAI_INVALID_JSON",
@@ -94,10 +97,15 @@ export class ItsAiClient {
       );
     }
 
+    // Engine API wraps subnet response in { result: <actual payload>, ... }
+    const body = (typeof envelope.result === "object" && envelope.result !== null
+      ? envelope.result
+      : envelope) as ItsAiDetectResponse;
+
     if (typeof body.answer !== "number") {
       throw new UpstreamError(
         "ITSAI_INVALID_RESPONSE",
-        "ItsAI response missing numeric answer",
+        `ItsAI response missing numeric answer. Got: ${JSON.stringify(envelope).slice(0, 200)}`,
         502
       );
     }

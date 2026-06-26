@@ -1,6 +1,5 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useEffect, useRef } from 'react';
-import { Terminal, Activity, Receipt } from 'lucide-react';
+import { Terminal, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 
 function formatTime() {
   const d = new Date();
@@ -16,18 +15,78 @@ function shortHash(hash) {
   return `${hash.slice(0, 8)}…${hash.slice(-8)}`;
 }
 
+function TimestampPill({ time }) {
+  return <span className="tf-time-pill">{time}</span>;
+}
+
+function DetailWithLink({ text, url }) {
+  if (!url) return <span className="tf-detail">{text}</span>;
+  const isExplorer = /explorer\.solana\.com|basescan\.org|etherscan\.io|polygonscan\.com/i.test(url);
+  return (
+    <span className="tf-detail">
+      {text}{' '}
+      <a href={url} target="_blank" rel="noopener noreferrer">
+        {isExplorer ? 'View on explorer' : url}
+        <ExternalLink size={10} style={{ marginLeft: 3, verticalAlign: 'middle' }} />
+      </a>
+    </span>
+  );
+}
+
+function ReceiptFooter({ receipt }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="tf-receipt">
+      <button className="tf-receipt-toggle" onClick={() => setOpen(o => !o)}>
+        <span>Settlement Receipt</span>
+        {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+      </button>
+      {open && (
+        <div className="tf-receipt-body">
+          <div className="tf-receipt-row">
+            <span className="tf-receipt-label">Provider</span>
+            <span className="tf-receipt-value">{receipt.provider}</span>
+          </div>
+          <div className="tf-receipt-row">
+            <span className="tf-receipt-label">Timestamp</span>
+            <span className="tf-receipt-value">{receipt.timestamp}</span>
+          </div>
+          <div className="tf-receipt-row">
+            <span className="tf-receipt-label">Confidence</span>
+            <span className="tf-receipt-value">{receipt.confidence}</span>
+          </div>
+          <div className="tf-receipt-row">
+            <span className="tf-receipt-label">Cost</span>
+            <span className="tf-receipt-value">{receipt.cost}</span>
+          </div>
+          {receipt.explorerUrl && (
+            <div className="tf-receipt-row">
+              <span className="tf-receipt-label">Transaction</span>
+              <a
+                className="tf-receipt-link"
+                href={receipt.explorerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {shortHash(receipt.txHash)}
+                <ExternalLink size={10} />
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const TerminalFeed = ({ loading, data, error, onComplete }) => {
   const [logs, setLogs] = useState([]);
   const [receipt, setReceipt] = useState(null);
   const bottomRef = useRef(null);
   const timersRef = useRef([]);
+  const onCompleteRef = useRef(onComplete);
 
-  const addLog = (logItem, delay) => {
-    const timer = setTimeout(() => {
-      setLogs((prev) => [...prev, { ...logItem, time: formatTime(), id: Math.random().toString(36).substring(7) }]);
-    }, delay);
-    timersRef.current.push(timer);
-  };
+  useEffect(() => { onCompleteRef.current = onComplete; });
 
   useEffect(() => {
     if (bottomRef.current) {
@@ -39,159 +98,139 @@ const TerminalFeed = ({ loading, data, error, onComplete }) => {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
 
+    const addLog = (entry, delay) => {
+      const t = setTimeout(() => {
+        setLogs(prev => [...prev, { ...entry, time: formatTime(), id: Math.random().toString(36).slice(2) }]);
+      }, delay);
+      timersRef.current.push(t);
+    };
+
     if (loading) {
       setLogs([]);
       setReceipt(null);
 
-      let delay = 100;
-      addLog({ group: 'Initial Routing', level: 'ROUTING', text: 'Request broadcasted to Telegraph Subnet #12' }, delay);
-      delay += 400;
-      addLog({ group: 'Initial Routing', level: 'UPLOAD', text: 'Document received, extracting content...' }, delay);
-      delay += 600;
-      addLog({ group: 'Initial Routing', level: 'STATUS', text: 'Handshake established with Telegraph Nodes' }, delay);
+      let d = 100;
+      addLog({ section: 'INIT', label: 'ROUTING', detail: 'Request broadcasted to Telegraph Subnet' }, d);
+      d += 400;
+      addLog({ section: 'INIT', label: 'UPLOAD', detail: 'Document received, extracting content...' }, d);
+      d += 600;
+      addLog({ section: 'INIT', label: 'STATUS', detail: 'Handshake established with Telegraph Nodes' }, d);
 
     } else if (data) {
       const v = data.verification;
       const hasText = v?.text?.status === 'analyzed';
       const imageResults = v?.images || [];
       const hasImages = imageResults.length > 0;
+      const itsaiProof = data?.payment?.itsai;
+      const txHash = itsaiProof?.txHash;
+      const explorerUrl = itsaiProof?.explorerUrl;
 
-      const allProofTxHashes = [];
-      if (v?.text?.payment?.txHash) allProofTxHashes.push(v.text.payment.txHash);
-      imageResults.forEach((img) => { if (img?.payment?.txHash) allProofTxHashes.push(img.payment.txHash); });
-      if (data?.payment?.itsai?.txHash) allProofTxHashes.push(data.payment.itsai.txHash);
+      let d = 200;
 
-      let delay = 200;
-
+      if (hasText) {
+        addLog({ section: 'ANALYSIS', label: 'ITSAI', detail: 'Evaluating linguistic patterns via Natural Language Verification...' }, d);
+        d += 500;
+      }
+      if (hasImages) {
+        addLog({ section: 'ANALYSIS', label: 'BITMIND', detail: `Analyzing ${imageResults.length} embedded image(s) for visual artifacts...` }, d);
+        d += 500;
+      }
       if (hasText || hasImages) {
-        if (hasText) {
-          addLog({ group: 'Telegraph Analysis', level: 'ITSAI', text: 'Evaluating linguistic patterns via Natural Language Verification...' }, delay);
-          delay += 500;
-        }
-        if (hasImages) {
-          addLog({ group: 'Telegraph Analysis', level: 'BITMIND', text: `Analyzing ${imageResults.length} embedded image(s) for visual artifacts...` }, delay);
-          delay += 500;
-        }
-        addLog({ group: 'Telegraph Analysis', level: 'STATUS', text: 'Neural passes complete, compiling output tensor.' }, delay);
-        delay += 400;
+        addLog({ section: 'ANALYSIS', label: 'STATUS', detail: 'Neural passes complete, compiling output tensor.' }, d);
+        d += 400;
       }
 
-      if (allProofTxHashes.length > 0) {
-        addLog({ group: 'Payment & Rail', level: 'BILLING', text: 'Deducting $0.01 micro-fee for analysis calls' }, delay);
-        delay += 400;
-        addLog({ group: 'Payment & Rail', level: 'NETWORK', text: 'Selected rail: Solana (Devnet)' }, delay);
-        delay += 400;
-        addLog({ group: 'Payment & Rail', level: 'TX', text: `Initiating settlement (id: ${shortHash(allProofTxHashes[0])})` }, delay);
-        delay += 600;
+      if (txHash) {
+        addLog({ section: 'PAYMENT', label: 'BILLING', detail: 'Deducting micro-fee for analysis call via x402' }, d);
+        d += 400;
+        addLog({ section: 'PAYMENT', label: 'NETWORK', detail: 'Rail: Solana Devnet' }, d);
+        d += 400;
+        addLog({ section: 'PAYMENT', label: 'TX', detail: `Settlement: ${shortHash(txHash)}`, url: explorerUrl }, d);
+        d += 600;
       }
 
-      addLog({ group: 'Proof Verification', level: 'PROOF', text: 'Verifying cryptographic proofs from subnet nodes' }, delay);
-      delay += 700;
+      addLog({ section: 'PROOF', label: 'VERIFY', detail: 'Verifying cryptographic proofs from subnet nodes' }, d);
+      d += 700;
 
       const isAi = v?.summary?.anyAi;
-      addLog({ group: 'Proof Verification', level: 'SIGNAL', text: `Consensus reached — Document marked as ${isAi ? 'AI-GENERATED' : 'LIKELY HUMAN'}` }, delay);
-      delay += 400;
+      addLog({ section: 'PROOF', label: 'SIGNAL', detail: `Consensus — Document marked as ${isAi ? 'AI-GENERATED' : 'LIKELY HUMAN'}` }, d);
+      d += 400;
 
-      const timer = setTimeout(() => {
+      const t = setTimeout(() => {
         setReceipt({
           provider: 'TELEGRAPH',
           timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC',
-          confidence: imageResults.length > 0 && typeof v?.summary?.maxConfidence === 'number'
-            ? `${(v.summary.maxConfidence * 100).toFixed(1)}%`
-            : hasText ? (v.text.result?.answer === 1 ? '100%' : '0%') : 'N/A',
+          confidence: (() => {
+            const imgConf = v?.summary?.textConfidence ?? v?.summary?.maxConfidence;
+            if (imageResults.length > 0 && typeof imgConf === 'number') {
+              return `${(imgConf * 100).toFixed(1)}%`;
+            }
+            if (hasText && v?.text?.result != null) {
+              return v.text.result.answer === 1 ? '100% (AI)' : '0% (Human)';
+            }
+            return 'N/A';
+          })(),
           cost: '$0.01',
+          txHash,
+          explorerUrl,
         });
-        if (onComplete) onComplete();
-      }, delay);
-      timersRef.current.push(timer);
+        onCompleteRef.current?.();
+      }, d);
+      timersRef.current.push(t);
 
     } else if (error) {
-      addLog({ group: 'System Failure', level: 'ERROR', text: `Pipeline aborted: ${error}` }, 100);
-      const timer = setTimeout(() => {
-        if (onComplete) onComplete();
-      }, 500);
-      timersRef.current.push(timer);
+      addLog({ section: 'ERROR', label: 'ABORT', detail: `Pipeline aborted: ${error}` }, 100);
+      const t = setTimeout(() => { onCompleteRef.current?.(); }, 500);
+      timersRef.current.push(t);
     }
 
-    return () => {
-      timersRef.current.forEach(clearTimeout);
-    };
-  }, [loading, data, error, onComplete]);
+    return () => { timersRef.current.forEach(clearTimeout); };
+  }, [loading, data, error]);
 
   if (!loading && !data && !error) return null;
 
+  let currentSection = null;
+
   return (
-    <div className="terminal-container">
-      <div className="terminal-header">
-        <div className="terminal-header-title">
-          <Terminal size={14} />
-          Terminal
+    <div className="tf-container">
+      <div className="tf-header">
+        <div className="tf-header-title">
+          <Terminal size={13} />
+          Telegraph Terminal
         </div>
-        <div className="terminal-header-dots">
-          <span className="dot red"></span>
-          <span className="dot yellow"></span>
-          <span className="dot green"></span>
-        </div>
+        <span className="tf-header-status">
+          {loading ? 'PROCESSING' : receipt ? 'SETTLED' : error ? 'ERROR' : 'IDLE'}
+        </span>
       </div>
 
-      <div className="terminal-body">
-        <div className="terminal-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Activity size={18} color="#3b82f6" />
-          Live Settlement & Logic Feed
-        </div>
-
-        {logs.map((log, index) => {
-          const showGroup = index === 0 || log.group !== logs[index - 1].group;
-
+      <div className="tf-body">
+        {logs.map((log) => {
+          const showDivider = log.section !== currentSection;
+          if (showDivider) currentSection = log.section;
           return (
             <React.Fragment key={log.id}>
-              {showGroup && (
-                <div className="terminal-group-header">
-                  <span className="terminal-col-time">Time</span>
-                  <span className="terminal-col-group">{log.group}</span>
-                </div>
+              {showDivider && (
+                <div className="tf-section-divider">{log.section}</div>
               )}
-              <div className="terminal-row">
-                <div className="terminal-col-time">
-                  <span className="terminal-time-badge">{log.time}</span>
+              <div className="tf-row">
+                <div className="tf-time">
+                  <TimestampPill time={log.time} />
                 </div>
-                <div className="terminal-col-content">
-                  <div className={`terminal-level level-${log.level.toLowerCase()}`}>{log.level}</div>
-                  <div className="terminal-text">{log.text}</div>
+                <div className="tf-content">
+                  <div className="tf-label">{log.label}</div>
+                  <DetailWithLink text={log.detail} url={log.url} />
                 </div>
               </div>
             </React.Fragment>
           );
         })}
 
-        {receipt && (
-          <div className="terminal-receipt animate-in">
-            <div className="receipt-title">
-              <Receipt size={18} />
-              Settlement Receipt
-            </div>
-            <div className="receipt-row">
-              <span className="receipt-label">Provider:</span>
-              <span className="receipt-value">{receipt.provider}</span>
-            </div>
-            <div className="receipt-row">
-              <span className="receipt-label">Timestamp:</span>
-              <span className="receipt-value">{receipt.timestamp}</span>
-            </div>
-            <div className="receipt-row">
-              <span className="receipt-label">Confidence:</span>
-              <span className="receipt-value">{receipt.confidence}</span>
-            </div>
-            <div className="receipt-row">
-              <span className="receipt-label">Settlement Cost:</span>
-              <span className="receipt-value">{receipt.cost}</span>
-            </div>
-          </div>
+        {loading && logs.length > 0 && !receipt && (
+          <span className="tf-cursor" />
         )}
 
-        {loading && !receipt && logs.length > 0 && (
-          <div className="terminal-cursor">_</div>
-        )}
+        {receipt && <ReceiptFooter receipt={receipt} />}
+
         <div ref={bottomRef} />
       </div>
     </div>

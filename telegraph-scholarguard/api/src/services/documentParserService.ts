@@ -41,15 +41,14 @@ export async function parseDocument(
 // ---------------------------------------------------------------------------
 
 async function parsePdf(buffer: Buffer): Promise<ParsedDocument> {
-  // pdfjs-dist v4 ships only .mjs — use dynamic import even in a CJS build.
+  const { pathToFileURL } = await import("node:url");
   const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
-  // Point workerSrc at the bundled worker file so pdfjs doesn't complain.
-  // require.resolve works in CJS builds to get the absolute path.
+  // require.resolve returns a Windows path (D:\...) which ESM rejects — convert to file:// URL.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (pdfjsLib as any).GlobalWorkerOptions.workerSrc = require.resolve(
-    "pdfjs-dist/legacy/build/pdf.worker.mjs"
-  );
+  (pdfjsLib as any).GlobalWorkerOptions.workerSrc = pathToFileURL(
+    require.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs")
+  ).href;
 
   const uint8 = new Uint8Array(buffer);
   const loadingTask = pdfjsLib.getDocument({ data: uint8, useSystemFonts: true });

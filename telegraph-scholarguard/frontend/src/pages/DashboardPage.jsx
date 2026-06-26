@@ -2,7 +2,6 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Shield,
-  ArrowLeft,
   Upload,
   FileText,
   Bot,
@@ -233,21 +232,21 @@ const DashboardPage = () => {
 
       <header className="top-nav">
         <Link to="/" className="logo">
-          <Shield size={28} color="var(--accent-color)" />
+          <Shield size={18} />
           <span>ScholarGuard</span>
+          <span style={{ opacity: 0.35, fontSize: '0.6rem', letterSpacing: '0.1em', marginLeft: '0.25rem' }}>
+            by Telegraph
+          </span>
         </Link>
-        <Link
-          to="/"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            color: 'var(--text-secondary)',
-            fontSize: '0.875rem',
-          }}
+        <a
+          href="https://docs.telegraphprotocol.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-primary"
+          style={{ padding: '0.35rem 0.9rem', fontSize: '0.65rem' }}
         >
-          <ArrowLeft size={15} /> Back to Home
-        </Link>
+          Docs
+        </a>
       </header>
 
       <main className="dashboard-main container">
@@ -280,7 +279,7 @@ const DashboardPage = () => {
             {file ? (
               <div>
                 <div className="upload-icon">
-                  <FileText size={40} color="var(--accent-green)" />
+                  <FileText size={40} />
                 </div>
                 <div className="file-info">
                   <span className="file-name">{file.name}</span>
@@ -337,7 +336,7 @@ const DashboardPage = () => {
                 </>
               ) : (
                 <>
-                  <Shield size={18} />
+                  <Shield size={16} />
                   Analyze Assignment
                 </>
               )}
@@ -432,10 +431,12 @@ const DashboardPage = () => {
                         <span className={textResult.result.answer === 1 ? 'verdict-ai' : 'verdict-human'}>
                           {textResult.result.answer === 1 ? 'AI Generated' : 'Likely Human'}
                         </span>
+                      ) : textResult.status === 'skipped' ? (
+                        <span style={{ color: 'var(--text-secondary)' }}>Skipped</span>
+                      ) : textResult.status === 'error' ? (
+                        <span style={{ color: 'var(--danger)', fontSize: '0.7rem' }}>{textResult.error || 'Error'}</span>
                       ) : (
-                        <span style={{ color: 'var(--text-secondary)' }}>
-                          {textResult.status === 'skipped' ? 'Skipped' : 'N/A'}
-                        </span>
+                        <span style={{ color: 'var(--text-secondary)' }}>N/A</span>
                       )}
                     </div>
                   </div>
@@ -483,7 +484,7 @@ const DashboardPage = () => {
                     <div key={idx} className="image-result-row">
                       <div className="image-result-header">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <ImageIcon size={15} color="var(--text-secondary)" />
+                          <ImageIcon size={15} />
                           <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Image {idx + 1}</span>
                         </div>
                         <span
