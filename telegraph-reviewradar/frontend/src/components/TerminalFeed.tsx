@@ -128,7 +128,10 @@ const TerminalFeed: React.FC<Props> = ({ loading, data, error, onComplete }) => 
       });
 
       const firstTx = data.items.find((it) => it.txHash)?.txHash ?? null;
-      const anySuccess = data.items.some((it) => it.itsAi && !it.itsAi.error);
+      const anySuccess = data.items.some((it) => {
+        if (!it.itsAi || typeof it.itsAi !== "object") return false;
+        return !("error" in it.itsAi);
+      });
 
       if (anySuccess) {
         addLog({ section: "PROOF", label: "VERIFY", detail: "Verifying cryptographic proofs from subnet nodes" }, d);
