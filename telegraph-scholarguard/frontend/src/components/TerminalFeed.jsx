@@ -119,8 +119,11 @@ const TerminalFeed = ({ loading, data, error, onComplete }) => {
     } else if (data) {
       const v = data.verification;
       const hasText = v?.text?.status === 'analyzed';
+      const textError = v?.text?.status === 'error';
       const imageResults = v?.images || [];
-      const hasImages = imageResults.length > 0;
+      const hasImageSuccess = imageResults.some(i => i.status !== 'failed');
+      const hasImageFailed = imageResults.some(i => i.status === 'failed');
+      const anySuccess = hasText || hasImageSuccess;
       const itsaiProof = data?.payment?.itsai;
       const txHash = itsaiProof?.txHash;
       const explorerUrl = itsaiProof?.explorerUrl;
@@ -130,12 +133,19 @@ const TerminalFeed = ({ loading, data, error, onComplete }) => {
       if (hasText) {
         addLog({ section: 'ANALYSIS', label: 'ITSAI', detail: 'Evaluating linguistic patterns via Natural Language Verification...' }, d);
         d += 500;
-      }
-      if (hasImages) {
-        addLog({ section: 'ANALYSIS', label: 'BITMIND', detail: `Analyzing ${imageResults.length} embedded image(s) for visual artifacts...` }, d);
+      } else if (textError) {
+        addLog({ section: 'ANALYSIS', label: 'ITSAI', detail: `Miner unavailable — ${v.text.error ?? 'text analysis failed'}` }, d);
         d += 500;
       }
-      if (hasText || hasImages) {
+      if (imageResults.length > 0) {
+        if (hasImageSuccess) {
+          addLog({ section: 'ANALYSIS', label: 'BITMIND', detail: `Analyzing ${imageResults.length} embedded image(s) for visual artifacts...` }, d);
+        } else if (hasImageFailed) {
+          addLog({ section: 'ANALYSIS', label: 'BITMIND', detail: `Miner unavailable — image analysis failed` }, d);
+        }
+        d += 500;
+      }
+      if (anySuccess) {
         addLog({ section: 'ANALYSIS', label: 'STATUS', detail: 'Neural passes complete, compiling output tensor.' }, d);
         d += 400;
       }
@@ -149,31 +159,37 @@ const TerminalFeed = ({ loading, data, error, onComplete }) => {
         d += 600;
       }
 
-      addLog({ section: 'PROOF', label: 'VERIFY', detail: 'Verifying cryptographic proofs from subnet nodes' }, d);
-      d += 700;
-
-      const isAi = v?.summary?.anyAi;
-      addLog({ section: 'PROOF', label: 'SIGNAL', detail: `Consensus — Document marked as ${isAi ? 'AI-GENERATED' : 'LIKELY HUMAN'}` }, d);
-      d += 400;
+      if (anySuccess) {
+        addLog({ section: 'PROOF', label: 'VERIFY', detail: 'Verifying cryptographic proofs from subnet nodes' }, d);
+        d += 700;
+        const isAi = v?.summary?.anyAi;
+        addLog({ section: 'PROOF', label: 'SIGNAL', detail: `Consensus — Document marked as ${isAi ? 'AI-GENERATED' : 'LIKELY HUMAN'}` }, d);
+        d += 400;
+      } else {
+        addLog({ section: 'PROOF', label: 'ERROR', detail: 'No miners responded — verification incomplete, no receipt generated' }, d);
+        d += 400;
+      }
 
       const t = setTimeout(() => {
-        setReceipt({
-          provider: 'TELEGRAPH',
-          timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC',
-          confidence: (() => {
-            const imgConf = v?.summary?.textConfidence ?? v?.summary?.maxConfidence;
-            if (imageResults.length > 0 && typeof imgConf === 'number') {
-              return `${(imgConf * 100).toFixed(1)}%`;
-            }
-            if (hasText && v?.text?.result != null) {
-              return v.text.result.answer === 1 ? '100% (AI)' : '0% (Human)';
-            }
-            return 'N/A';
-          })(),
-          cost: '$0.01',
-          txHash,
-          explorerUrl,
-        });
+        if (anySuccess || txHash) {
+          setReceipt({
+            provider: 'TELEGRAPH',
+            timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC',
+            confidence: (() => {
+              const imgConf = v?.summary?.textConfidence ?? v?.summary?.maxConfidence;
+              if (imageResults.length > 0 && typeof imgConf === 'number') {
+                return `${(imgConf * 100).toFixed(1)}%`;
+              }
+              if (hasText && v?.text?.result != null) {
+                return v.text.result.answer === 1 ? '100% (AI)' : '0% (Human)';
+              }
+              return 'N/A';
+            })(),
+            cost: '$0.01',
+            txHash,
+            explorerUrl,
+          });
+        }
         onCompleteRef.current?.();
       }, d);
       timersRef.current.push(t);

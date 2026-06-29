@@ -127,27 +127,35 @@ const TerminalFeed: React.FC<Props> = ({ loading, data, error, onComplete }) => 
         d += 300;
       });
 
-      addLog({ section: "PROOF", label: "VERIFY", detail: "Verifying cryptographic proofs from subnet nodes" }, d);
-      d += 700;
-
-      const s = aggregateItsAiPercentages(data.items);
-      const signal =
-        s.definitive > 0
-          ? `${s.pctHuman}% likely human · ${s.pctAi}% likely AI (${s.definitive} definitive)`
-          : "Consensus reached — analysis complete";
-
-      addLog({ section: "PROOF", label: "SIGNAL", detail: signal }, d);
-      d += 400;
-
       const firstTx = data.items.find((it) => it.txHash)?.txHash ?? null;
+      const anySuccess = data.items.some((it) => it.itsAi && !it.itsAi.error);
+
+      if (anySuccess) {
+        addLog({ section: "PROOF", label: "VERIFY", detail: "Verifying cryptographic proofs from subnet nodes" }, d);
+        d += 700;
+
+        const s = aggregateItsAiPercentages(data.items);
+        const signal =
+          s.definitive > 0
+            ? `${s.pctHuman}% likely human · ${s.pctAi}% likely AI (${s.definitive} definitive)`
+            : "Consensus reached — analysis complete";
+
+        addLog({ section: "PROOF", label: "SIGNAL", detail: signal }, d);
+        d += 400;
+      } else {
+        addLog({ section: "PROOF", label: "ERROR", detail: "No miners responded — verification incomplete, no receipt generated" }, d);
+        d += 400;
+      }
 
       const t = setTimeout(() => {
-        setReceipt({
-          provider: "TELEGRAPH",
-          timestamp: new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC",
-          reviews: `${reviewCount} analyzed`,
-          cost: firstTx ? `$${(reviewCount * 0.01).toFixed(2)}` : "N/A",
-        });
+        if (anySuccess || firstTx) {
+          setReceipt({
+            provider: "TELEGRAPH",
+            timestamp: new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC",
+            reviews: `${reviewCount} analyzed`,
+            cost: firstTx ? `$${(reviewCount * 0.01).toFixed(2)}` : "N/A",
+          });
+        }
         onCompleteRef.current();
       }, d);
       timersRef.current.push(t);

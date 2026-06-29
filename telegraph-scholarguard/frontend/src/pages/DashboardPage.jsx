@@ -402,8 +402,13 @@ const DashboardPage = () => {
               )}
 
               {/* Overall verdict */}
-              <div className={`overall-verdict ${anyAi ? 'ai-generated' : 'likely-human'}`}>
-                {anyAi ? (
+              <div className={`overall-verdict ${anyAi === null ? 'verdict-unavailable' : anyAi ? 'ai-generated' : 'likely-human'}`}>
+                {anyAi === null ? (
+                  <>
+                    <AlertTriangle size={26} />
+                    Verification Unavailable — Miners Offline
+                  </>
+                ) : anyAi ? (
                   <>
                     <Bot size={26} />
                     AI Generated
@@ -487,16 +492,26 @@ const DashboardPage = () => {
                           <ImageIcon size={15} />
                           <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Image {idx + 1}</span>
                         </div>
-                        <span
-                          className={
-                            img.result?.isAI || img.isAI ? 'verdict-ai' : 'verdict-human'
-                          }
-                          style={{ fontSize: '0.875rem', fontWeight: 700 }}
-                        >
-                          {img.result?.isAI || img.isAI ? 'AI Generated' : 'Likely Human'}
-                        </span>
+                        {img.status === 'failed' ? (
+                          <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--danger)' }}>
+                            Failed
+                          </span>
+                        ) : (
+                          <span
+                            className={img.result?.isAI || img.isAI ? 'verdict-ai' : 'verdict-human'}
+                            style={{ fontSize: '0.875rem', fontWeight: 700 }}
+                          >
+                            {img.result?.isAI || img.isAI ? 'AI Generated' : 'Likely Human'}
+                          </span>
+                        )}
                       </div>
-                      {typeof (img.result?.confidence ?? img.confidence) === 'number' && (
+                      {img.status === 'failed' && img.error && (
+                        <div className="error-box" style={{ background: 'rgba(239,68,68,0.08)', color: '#f87171', borderColor: 'rgba(239,68,68,0.25)', marginBottom: '0.5rem' }}>
+                          <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                          <span style={{ fontSize: '0.75rem' }}>{typeof img.error === 'string' ? img.error : img.error?.message ?? 'Miner unavailable'}</span>
+                        </div>
+                      )}
+                      {img.status !== 'failed' && typeof (img.result?.confidence ?? img.confidence) === 'number' && (
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
                           Confidence:{' '}
                           <span style={{ color: '#e2e8f0', fontWeight: 600 }}>

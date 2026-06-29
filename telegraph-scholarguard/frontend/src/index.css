@@ -440,6 +440,12 @@ main.dashboard-main {
   border-color: rgba(120, 255, 160, 0.3);
 }
 
+.overall-verdict.verdict-unavailable {
+  background: rgba(239, 68, 68, 0.07);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
 .doc-info-card {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
