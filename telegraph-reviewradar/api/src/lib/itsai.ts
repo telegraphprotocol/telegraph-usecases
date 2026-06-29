@@ -34,7 +34,8 @@ export async function detectText(
   resourceBaseUrl: string,
 ): Promise<{ data: unknown; txHash: string | null }> {
   const base = resourceBaseUrl.replace(/\/$/, "");
-  const url = `${base}/engine/v1/ask/32`;
+  const subnetPrefix = (process.env.ITSAI_SUBNET_PREFIX ?? "/engine/v1/ask/32").replace(/\/$/, "");
+  const url = `${base}${subnetPrefix}`;
   const timeoutMs = parseTimeoutMs(process.env.ITSAI_REQUEST_TIMEOUT_MS, 60_000);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
