@@ -70,17 +70,16 @@ export default function App() {
       }
 
       console.log("[analyze] HTTP", res.status, "body:", body);
-      if (res.ok && body && typeof body === "object" && "items" in body) {
+      if (res.ok && body && typeof body === "object" && "items" in body && !("error" in body)) {
         setState({ kind: "ok", data: body as AnalyzeSuccess });
         return;
       }
 
       const err = (body && typeof body === "object" ? body : {}) as AnalyzeErrorBody;
-      const isMinerDown = res.status === 502 || (err.error ?? "").toLowerCase().includes("itsai");
       setState({
         kind: "err",
-        message: isMinerDown ? "Miners Offline — Verification Unavailable" : (err.error ?? `Request failed (${res.status})`),
-        detail: isMinerDown ? "The ItsAI subnet has no active miners. Results will be available when miners reconnect." : err.detail,
+        message: err.error ?? `Request failed (${res.status})`,
+        detail: err.detail,
         partial: err.partial,
         asin: err.asin,
         product: err.product,

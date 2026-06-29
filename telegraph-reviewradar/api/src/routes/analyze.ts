@@ -89,9 +89,13 @@ analyzeRouter.post("/analyze", async (req, res) => {
         txHash: capture.txHash ?? txHash ?? null,
       });
     } catch (e) {
-      res.status(502).json({
-        error: "ItsAI or x402 payment failed",
-        detail: String(e),
+      const errMsg = String(e);
+      const isMinerDown = errMsg.includes("404") || errMsg.includes("miner not found") || errMsg.includes("no miners");
+      res.status(200).json({
+        error: isMinerDown ? "Miners Offline — Verification Unavailable" : "ItsAI or x402 payment failed",
+        detail: isMinerDown
+          ? "The ItsAI subnet has no active miners. Results will be available when miners reconnect."
+          : errMsg,
         asin,
         product,
         warning,
