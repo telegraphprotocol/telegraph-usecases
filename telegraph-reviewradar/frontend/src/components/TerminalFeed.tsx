@@ -164,8 +164,15 @@ const TerminalFeed: React.FC<Props> = ({ loading, data, error, onComplete }) => 
       timersRef.current.push(t);
 
     } else if (error) {
-      addLog({ section: "ERROR", label: "ABORT", detail: `Pipeline aborted: ${error}` }, 100);
-      const t = setTimeout(() => { onCompleteRef.current(); }, 500);
+      const isMinerDown = error.toLowerCase().includes("miner") || error.toLowerCase().includes("unavailable");
+      if (isMinerDown) {
+        addLog({ section: "ANALYSIS", label: "ITSAI", detail: "Contacting ItsAI subnet..." }, 200);
+        addLog({ section: "ANALYSIS", label: "ERROR", detail: "No miners responded — ItsAI subnet offline" }, 700);
+        addLog({ section: "PROOF", label: "ERROR", detail: "Verification incomplete — no receipt generated" }, 1100);
+      } else {
+        addLog({ section: "ERROR", label: "ABORT", detail: `Pipeline aborted: ${error}` }, 100);
+      }
+      const t = setTimeout(() => { onCompleteRef.current(); }, isMinerDown ? 1500 : 500);
       timersRef.current.push(t);
     }
 
