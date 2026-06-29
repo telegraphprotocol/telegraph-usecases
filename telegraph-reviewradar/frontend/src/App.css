@@ -471,6 +471,19 @@
   color: var(--text-secondary);
 }
 
+.dash-pill.failed {
+  background: rgba(239,68,68,0.08);
+  border-color: rgba(239,68,68,0.3);
+  color: #f87171;
+}
+
+.dash-miner-error {
+  font-size: 0.72rem;
+  color: #f87171;
+  margin-top: 0.35rem;
+  opacity: 0.85;
+}
+
 .dash-status { font-size: 0.72rem; color: var(--text-secondary); }
 
 details.dash-raw { margin-top: 0.85rem; }

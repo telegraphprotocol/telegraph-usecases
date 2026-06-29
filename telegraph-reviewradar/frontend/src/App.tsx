@@ -13,6 +13,7 @@ import {
   Shield,
   Bot,
   ExternalLink,
+  AlertTriangle,
 } from "lucide-react";
 import {
   aggregateItsAiPercentages,
@@ -335,7 +336,12 @@ function ResultCard({ index, item }: { index: number; item: AnalyzeItem }) {
   const r = formatReviewSummary(item.review);
   const ai = itsAiSummary(item.itsAi);
   const pill =
-    ai.answer === 1 ? (
+    ai.error ? (
+      <span className="dash-pill failed">
+        <AlertTriangle size={14} aria-hidden="true" />
+        Miner Unavailable
+      </span>
+    ) : ai.answer === 1 ? (
       <span className="dash-pill ai">
         <Bot size={14} aria-hidden="true" />
         Likely AI-generated
@@ -385,8 +391,11 @@ function ResultCard({ index, item }: { index: number; item: AnalyzeItem }) {
       <div className="dash-section-label">ItsAI signal</div>
       <div className="dash-ai-row">
         {pill}
-        {ai.status ? <span className="dash-status">status: {ai.status}</span> : null}
+        {!ai.error && ai.status ? <span className="dash-status">status: {ai.status}</span> : null}
       </div>
+      {ai.error ? (
+        <p className="dash-miner-error">{ai.error}</p>
+      ) : null}
       <details className="dash-raw">
         <summary>
           <FileJson size={14} style={{ verticalAlign: "-2px", marginRight: "0.35rem" }} />

@@ -70,12 +70,13 @@ export function formatReviewSummary(review: Record<string, unknown>): {
   };
 }
 
-export function itsAiSummary(itsAi: unknown): { answer: number | null; status: string | null } {
-  if (!itsAi || typeof itsAi !== "object") return { answer: null, status: null };
+export function itsAiSummary(itsAi: unknown): { answer: number | null; status: string | null; error: string | null } {
+  if (!itsAi || typeof itsAi !== "object") return { answer: null, status: null, error: null };
   const o = itsAi as Record<string, unknown>;
   const answer = typeof o.answer === "number" ? o.answer : null;
   const status = typeof o.status === "string" ? o.status : null;
-  return { answer, status };
+  const error = typeof o.error === "string" ? o.error : "error" in o ? String(o.error) : null;
+  return { answer, status, error };
 }
 
 /** Percentages among reviews with a definitive ItsAI answer (0 = human, 1 = AI). */
