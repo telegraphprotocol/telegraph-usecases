@@ -226,6 +226,10 @@ const DashboardPage = () => {
   const docInfo = result?.document;
   const allProofs = collectAllProofs(result);
 
+  const textSucceeded = textResult?.status === 'analyzed';
+  const imagesSucceeded = imageResults.some(i => i.status !== 'failed');
+  const verificationFailed = result && !textSucceeded && !imagesSucceeded;
+
   return (
     <div className="dashboard-layout">
       <GlobalMouseTracker />
@@ -402,8 +406,8 @@ const DashboardPage = () => {
               )}
 
               {/* Overall verdict */}
-              <div className={`overall-verdict ${anyAi === null ? 'verdict-unavailable' : anyAi ? 'ai-generated' : 'likely-human'}`}>
-                {anyAi === null ? (
+              <div className={`overall-verdict ${verificationFailed ? 'verdict-unavailable' : anyAi ? 'ai-generated' : 'likely-human'}`}>
+                {verificationFailed ? (
                   <>
                     <AlertTriangle size={26} />
                     Verification Unavailable — Miners Offline
