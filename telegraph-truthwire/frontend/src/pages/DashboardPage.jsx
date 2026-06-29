@@ -295,8 +295,13 @@ const DashboardPage = () => {
                       );
                     })()}
 
-                    <div className={`ai-result ${data.verification.summary.anyAi ? 'ai' : 'real'}`}>
-                      {data.verification.summary.anyAi ? (
+                    <div className={`ai-result ${data.verification.summary.anyAi === null ? 'error' : data.verification.summary.anyAi ? 'ai' : 'real'}`}>
+                      {data.verification.summary.anyAi === null ? (
+                        <>
+                          <AlertTriangle size={24} />
+                          <span>Verification Unavailable: Miners offline</span>
+                        </>
+                      ) : data.verification.summary.anyAi ? (
                         <>
                           <Bot size={24} />
                           <span>Warning: High Probability of AI Generated Content</span>
@@ -358,18 +363,32 @@ const DashboardPage = () => {
                        )}
                        
                        {/* Bitmind - Image Analysis */}
-                       {data.verification.images && data.verification.images.length > 0 && (
-                          <div className="provider-status">
-                             <div>
-                                <div className="provider-label">Bitmind</div>
-                                <div className="provider-info">Deep Image Analysis</div>
-                             </div>
-                             <div style={{ textAlign: 'right' }}>
-                                <div style={{ color: '#4ade80', fontSize: '0.75rem', fontWeight: 'bold' }}>ACTIVE</div>
-                                <div className="provider-info">{data.verification.images.length} images analyzed</div>
-                             </div>
-                          </div>
-                       )}
+                       {data.verification.images && data.verification.images.length > 0 && (() => {
+                          const failed = data.verification.images.filter(i => i.status === 'failed');
+                          const analyzed = data.verification.images.filter(i => i.status !== 'failed');
+                          const allFailed = failed.length === data.verification.images.length;
+                          return (
+                            <div className="provider-status" style={allFailed ? { borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)' } : {}}>
+                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                  {allFailed && <AlertTriangle size={20} color="#f87171" />}
+                                  <div>
+                                     <div className="provider-label" style={allFailed ? { color: '#f87171' } : {}}>Bitmind</div>
+                                     <div className="provider-info" style={allFailed ? { color: '#fca5a5' } : {}}>Deep Image Analysis</div>
+                                  </div>
+                               </div>
+                               <div style={{ textAlign: 'right' }}>
+                                  <div style={{ color: allFailed ? '#ef4444' : '#4ade80', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                     {allFailed ? 'FAILED' : 'ACTIVE'}
+                                  </div>
+                                  <div className="provider-info">
+                                     {allFailed
+                                       ? failed[0]?.error?.message ?? 'Miner unavailable'
+                                       : `${analyzed.length} image${analyzed.length !== 1 ? 's' : ''} analyzed`}
+                                  </div>
+                               </div>
+                            </div>
+                          );
+                       })()}
 
                        {/* ItsAI - Text Analysis */}
                        {data.verification.text && (

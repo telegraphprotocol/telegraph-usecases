@@ -147,22 +147,30 @@ const TerminalFeed = ({ loading, data, error, onComplete }) => {
       addLog({ section: 'Initial Routing', label: 'STATUS', detail: 'Handshake established with Telegraph Nodes' }, d);
 
     } else if (data) {
-      const hasImage = data.verification?.images?.length > 0;
+      const images = data.verification?.images ?? [];
+      const hasImageSuccess = images.some(i => i.status !== 'failed');
+      const hasImageFailed = images.some(i => i.status === 'failed');
       const hasText = data.verification?.text?.status === 'analyzed';
       const bitmindTx = data.payment?.bitmind?.txHash;
       const itsaiTx = data.payment?.itsai?.txHash;
+      const anySuccess = hasImageSuccess || hasText;
+      const anyAi = data.verification?.summary?.anyAi;
 
       let d = 200;
 
-      if (hasImage) {
-        addLog({ section: 'Telegraph Analysis', label: 'BITMIND', detail: `Analyzing ${data.verification.images.length} image(s) for visual artifacts...` }, d);
+      if (images.length > 0) {
+        if (hasImageSuccess) {
+          addLog({ section: 'Telegraph Analysis', label: 'BITMIND', detail: `Analyzing ${images.length} image(s) for visual artifacts...` }, d);
+        } else if (hasImageFailed) {
+          addLog({ section: 'Telegraph Analysis', label: 'BITMIND', detail: `Miner unavailable — ${images[0]?.error?.message ?? 'image analysis failed'}` }, d);
+        }
         d += 500;
       }
       if (hasText) {
         addLog({ section: 'Telegraph Analysis', label: 'ITSAI', detail: 'Evaluating linguistic patterns via Natural Language Verification...' }, d);
         d += 500;
       }
-      if (hasImage || hasText) {
+      if (anySuccess) {
         addLog({ section: 'Telegraph Analysis', label: 'STATUS', detail: 'Neural passes complete, compiling output tensor.' }, d);
         d += 400;
       }
@@ -172,30 +180,35 @@ const TerminalFeed = ({ loading, data, error, onComplete }) => {
         d += 400;
         addLog({ section: 'Payment & Rail', label: 'NETWORK', detail: 'Selected rail: Solana (Devnet)' }, d);
         d += 400;
-        const hash = bitmindTx || itsaiTx;
         const explorerBase = data.payment?.bitmind?.explorerUrl || data.payment?.itsai?.explorerUrl || '';
+        const hash = bitmindTx || itsaiTx;
         addLog({ section: 'Payment & Rail', label: 'TX', detail: `Settlement initiated — ${explorerBase || `id: ${shortHash(hash)}`}` }, d);
         d += 600;
       }
 
-      addLog({ section: 'Proof Verification', label: 'PROOF', detail: 'Verifying cryptographic proofs from subnet nodes' }, d);
-      d += 700;
-
-      const isAi = data.verification?.summary?.anyAi;
-      addLog({ section: 'Proof Verification', label: 'SIGNAL', detail: `Consensus reached — Content marked as ${isAi ? 'AI-GENERATED' : 'AUTHENTIC'}` }, d);
-      d += 400;
+      if (anySuccess) {
+        addLog({ section: 'Proof Verification', label: 'PROOF', detail: 'Verifying cryptographic proofs from subnet nodes' }, d);
+        d += 700;
+        addLog({ section: 'Proof Verification', label: 'SIGNAL', detail: `Consensus reached — Content marked as ${anyAi ? 'AI-GENERATED' : 'AUTHENTIC'}` }, d);
+        d += 400;
+      } else {
+        addLog({ section: 'Proof Verification', label: 'ERROR', detail: 'No miners responded — verification incomplete, no receipt generated' }, d);
+        d += 400;
+      }
 
       const timer = setTimeout(() => {
-        setReceipt({
-          provider: 'TELEGRAPH',
-          timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC',
-          confidence: data.verification?.summary?.maxConfidence
-            ? `${(data.verification.summary.maxConfidence * 100).toFixed(1)}%`
-            : '99.8%',
-          cost: '$0.01',
-          explorerUrl: data.payment?.bitmind?.explorerUrl || data.payment?.itsai?.explorerUrl || null,
-          txHash: data.payment?.bitmind?.txHash || data.payment?.itsai?.txHash || null,
-        });
+        if (anySuccess || bitmindTx || itsaiTx) {
+          setReceipt({
+            provider: 'TELEGRAPH',
+            timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC',
+            confidence: data.verification?.summary?.maxConfidence
+              ? `${(data.verification.summary.maxConfidence * 100).toFixed(1)}%`
+              : '99.8%',
+            cost: '$0.01',
+            explorerUrl: data.payment?.bitmind?.explorerUrl || data.payment?.itsai?.explorerUrl || null,
+            txHash: data.payment?.bitmind?.txHash || data.payment?.itsai?.txHash || null,
+          });
+        }
         if (onCompleteRef.current) onCompleteRef.current();
       }, d);
       timersRef.current.push(timer);
