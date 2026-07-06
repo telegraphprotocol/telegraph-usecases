@@ -1,14 +1,14 @@
 # TrustFilter
 
-TrustFilter is a use case built on the [Telegraph](https://telegraph.ai) platform. It lets anyone submit a phone number, an SMS message, or both and instantly receive a scam risk verdict — powered by the **Groq LLM subnet** on Telegraph, with each inference call paid on-chain via the [x402](https://x402.org) protocol on Solana and a cryptographic transaction hash returned as proof.
+TrustFilter is a use case built on the [Telegraph](https://telegraph.ai) platform. It lets anyone submit a phone number, an SMS message, or both and instantly receive a scam risk verdict — powered by the **OpenAI LLM miner** (`gpt-4o-search-preview`) on Telegraph, with each inference call paid on-chain via the [x402](https://x402.org) protocol on Solana and a cryptographic transaction hash returned as proof.
 
 ---
 
 ## How it works
 
 1. The user enters a phone number, a message body, or both into the dashboard.
-2. The backend builds a structured scam-detection prompt and sends it to the **Groq LLM subnet** on Telegraph (subnet 102).
-3. The subnet call is paid automatically via x402 — a micro-fee is settled on Solana and the transaction hash is captured.
+2. The backend builds a structured scam-detection prompt and sends it to the **OpenAI LLM miner** on Telegraph (miner 102).
+3. The miner call is paid automatically via x402 — a micro-fee is settled on Solana and the transaction hash is captured.
 4. The model returns a strict JSON verdict: `scam`, `suspicious`, or `likely_safe`, along with a confidence score, a one-sentence summary, reasoning points, and specific red-flag phrases.
 5. The frontend animates the pipeline in a live terminal feed and then displays the full result with a clickable on-chain payment proof link.
 
@@ -31,7 +31,7 @@ The backend service. Exposes two HTTP endpoints:
 
 Built with **Express 5**, **TypeScript**, and **Zod**. x402 payments are handled server-side via `@x402/fetch` + `@x402/svm`.
 
-→ See [`api/README.md`](./api/README.md) for full setup, environment variables, API reference, and instructions for calling the Telegraph Groq subnet directly.
+→ See [`api/README.md`](./api/README.md) for full setup, environment variables, API reference, and instructions for calling the Telegraph OpenAI miner directly.
 
 ### [`frontend/`](./frontend/README.md)
 
@@ -78,6 +78,6 @@ The Vite dev server proxies all `/api/*` requests to `http://localhost:3006`.
 | Backend framework | Express 5 |
 | Frontend framework | React 19 |
 | Frontend build tool | Vite 8 |
-| AI inference | Telegraph Groq LLM subnet (subnet 102) |
+| AI inference | Telegraph OpenAI LLM miner (miner 102, `gpt-4o-search-preview`) |
 | Payment protocol | x402 |
 | Payment network | Solana (devnet / mainnet) |

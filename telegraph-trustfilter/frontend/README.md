@@ -34,7 +34,7 @@ No Solana wallet UI — payments are handled entirely server-side by the API.
 
 ### Landing Page (`/`)
 
-Introduces TrustFilter and links to the Dashboard. Highlights the Telegraph-powered Groq LLM analysis and x402 payment proof.
+Introduces TrustFilter and links to the Dashboard. Highlights the Telegraph-powered OpenAI LLM analysis and x402 payment proof.
 
 ### Dashboard (`/dashboard`)
 
@@ -56,8 +56,8 @@ Animates the verification lifecycle in real time across three phases:
 
 | Phase | Log entries |
 |---|---|
-| **Initial Routing** | Request dispatched to Telegraph subnet, session established |
-| **Telegraph Analysis** | Groq LLM inference running, parsing model output |
+| **Initial Routing** | Request dispatched to Telegraph miner, session established |
+| **Telegraph Analysis** | OpenAI LLM inference running, parsing model output |
 | **Payment & Rail** | Micro-fee settlement on Solana, transaction ID |
 
 Ends with a **Settlement Receipt** showing provider, timestamp, confidence, and cost.
@@ -68,7 +68,7 @@ After the terminal feed completes, the full analysis result is shown:
 
 - **Verdict badge** — colour-coded: red for `SCAM`, yellow for `SUSPICIOUS`, green for `LIKELY SAFE`
 - **Confidence score** — percentage confidence from the model
-- **Summary** — one-sentence verdict from the Groq LLM
+- **Summary** — one-sentence verdict from the OpenAI LLM
 - **Red Flags** — specific phrases or patterns the model identified (shown only when present)
 - **Analysis Reasons** — 2–5 reasoning points explaining the verdict
 - **Cryptographic Proof** — clickable Solana transaction hash linking to Solscan, proving the inference call was paid on-chain via x402

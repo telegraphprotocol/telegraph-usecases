@@ -57,14 +57,14 @@ export class ScamAnalysisService {
   constructor(private readonly config: AppConfig) {}
 
   async analyze(req: AnalyzeRequest, paymentFetch: typeof fetch): Promise<AnalyzeResult> {
-    const url = `${this.config.telegraphBaseUrl}${this.config.groqSubnetPath}`;
+    const url = `${this.config.telegraphBaseUrl}${this.config.openaiMinerAskPath}`;
     const prompt = buildPrompt(req);
 
     const capture: PaymentCapture = { txHash: undefined };
     const capturingFetch = withTxCapture(paymentFetch, capture);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.config.groqRequestTimeoutMs);
+    const timeoutId = setTimeout(() => controller.abort(), this.config.openaiRequestTimeoutMs);
 
     let response: Response;
     try {
@@ -72,9 +72,13 @@ export class ScamAnalysisService {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [{ role: "user", content: prompt }],
-          max_tokens: 512
+          method: "POST",
+          endpoint: "/v1/chat/completions",
+          payload: {
+            model: "gpt-4o-search-preview",
+            messages: [{ role: "user", content: prompt }],
+            max_completion_tokens: 512
+          }
         }),
         signal: controller.signal
       });
@@ -84,28 +88,28 @@ export class ScamAnalysisService {
 
     if (!response.ok) {
       const body = await response.text().catch(() => "(unreadable)");
-      throw new Error(`Telegraph Groq returned HTTP ${response.status}: ${body}`);
+      throw new Error(`Telegraph OpenAI miner returned HTTP ${response.status}: ${body}`);
     }
 
-    const responseData = await response.json() as {
-      choices?: Array<{ message?: { content?: string } }>;
+    const engineResponse = await response.json() as {
+      result?: { choices?: Array<{ message?: { content?: string } }> };
     };
 
-    const content = responseData?.choices?.[0]?.message?.content;
+    const content = engineResponse?.result?.choices?.[0]?.message?.content;
     if (!content || typeof content !== "string") {
-      throw new Error("Groq LLM returned empty content");
+      throw new Error("OpenAI LLM returned empty content");
     }
 
     let parsed: Record<string, unknown>;
     try {
       parsed = JSON.parse(cleanJsonPayload(content));
     } catch {
-      throw new Error(`Groq LLM output was not valid JSON: ${content.slice(0, 200)}`);
+      throw new Error(`OpenAI LLM output was not valid JSON: ${content.slice(0, 200)}`);
     }
 
     const verdict = normalizeVerdict(parsed.verdict);
     if (!verdict) {
-      throw new Error(`Groq returned invalid verdict: ${String(parsed.verdict)}`);
+      throw new Error(`OpenAI returned invalid verdict: ${String(parsed.verdict)}`);
     }
 
     const confidenceRaw = Number(parsed.confidence);
